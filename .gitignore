@@ -88,3 +88,14 @@ __pycache__/
 #######################################
 .env
 local.properties
+
+# Ignore all Visual Studio project files anywhere in the repo
+*.sln
+*.vcxproj
+*.vcxproj.*
+*.vcproj
+*.vcproj.*
+*.user
+*.local
+*/x64/
+*/Debug/
