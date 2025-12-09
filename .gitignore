@@ -1,0 +1,90 @@
+#######################################
+# Build & Output
+#######################################
+build/
+build*/
+bin/
+bin*/
+out/
+*.exe
+*.dll
+*.so
+*.dylib
+*.obj
+*.o
+*.a
+*.lib
+*.pdb
+*.ilk
+*.exp
+*.app
+*.log
+
+#######################################
+# CMake Files
+#######################################
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+compile_commands.json    # 可选，如果你需要给 clangd 可以删掉这行
+
+#######################################
+# IDE / Editor
+#######################################
+
+# Visual Studio
+.vs/
+*.VC.db
+*.VC.opendb
+*.user
+*.userosscache
+
+# Visual Studio Code
+.vscode/
+# 如果你要共享 tasks.json / launch.json，则从这里移除
+
+# CLion / JetBrains
+.idea/
+
+#######################################
+# Vulkan / OpenGL Specific
+#######################################
+
+# Shader compilation intermediates
+*.spv
+*.glsl.h
+*.shaderbin
+*.cache
+
+# NVIDIA / AMD shader caches
+.nv/
+amdgpu_shader_cache/
+
+#######################################
+# OS-generated files
+#######################################
+.DS_Store
+Thumbs.db
+desktop.ini
+
+#######################################
+# Temporary files
+#######################################
+*.tmp
+*.temp
+*.swp
+*.swo
+*.bak
+
+#######################################
+# Python / Scripts
+#######################################
+__pycache__/
+*.pyc
+
+#######################################
+# Project local config
+#######################################
+.env
+local.properties
