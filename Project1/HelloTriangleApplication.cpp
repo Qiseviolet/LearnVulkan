@@ -4,7 +4,7 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "Libraries/tinyobjloader-release/tiny_obj_loader.h"
 #include <unordered_map>
-
+#include "CameraFPS.h"
 
 void HelloTriangleApplication::run() {
     initWindow();
@@ -19,6 +19,12 @@ void HelloTriangleApplication::initWindow() {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
     window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+
+    static CameraFPS fpsCamera(glm::vec3(0.0f, 5.0f, 5.0f), 0.0, 45.0f, 45.0f);
+    camera = &fpsCamera;
+    static InputManager input(window, camera);
+    inputManager = &input;
+
     glfwSetWindowUserPointer(window, this);
     glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 }
@@ -53,7 +59,11 @@ void HelloTriangleApplication::initVulkan() {
 void HelloTriangleApplication::mainLoop() {
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
+        float current = glfwGetTime();
+        float deltaTime = current - mainLoopLastTime;
+        inputManager->Update(deltaTime);
         drawFrame();
+        mainLoopLastTime = current;
     }
 
     vkDeviceWaitIdle(device);
@@ -1020,9 +1030,9 @@ void HelloTriangleApplication::updateUniformBuffer(uint32_t currentImage) {
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
     UniformBufferObject ubo{};
-    ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
+    ubo.model = glm::rotate(glm::mat4(1.0f), /*time * */glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.view = camera->GetViewMatrix();
+    ubo.proj = glm::perspective(glm::radians(camera->GetFovy()), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 100.0f);
     ubo.proj[1][1] *= -1;
 
     memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));

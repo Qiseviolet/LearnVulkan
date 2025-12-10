@@ -20,6 +20,7 @@
 #include <string>
 #include <array>
 #include <chrono>
+#include "InputManager.h"
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
@@ -298,6 +299,9 @@ private:
     std::vector<void*> uniformBuffersMapped;
     void createUniformBuffers();
     void updateUniformBuffer(uint32_t currentImage);
+    float mainLoopLastTime = 0.0f;
+    InputManager* inputManager;
+    CameraBase* camera;
 
     VkDescriptorPool descriptorPool;
     //描述符集不能直接创建，必须像命令缓冲区一样从池中分配
