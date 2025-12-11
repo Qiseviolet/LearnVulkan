@@ -13,6 +13,7 @@ private:
 	float LastX = 0.0f;
 	float LastY = 0.0f;
 	bool FirstMouse = true;
+	bool RightMouseButtonPress = false;
 
 	static void MouseCallback(GLFWwindow* window, double xpos, double ypos);
 	static void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset);

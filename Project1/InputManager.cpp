@@ -16,6 +16,14 @@ InputManager::InputManager(GLFWwindow* window, CameraBase* camera)
 }
 
 void InputManager::Update(float deltaTime) {
+	if (glfwGetMouseButton(Window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+	{
+		Instance->RightMouseButtonPress = true;
+	}
+	else {
+		Instance->RightMouseButtonPress = false;
+	}
+
 	if (!Instance->Camera->CanMoveable())
 		return;
 	if (glfwGetKey(Window, GLFW_KEY_W) == GLFW_PRESS)
@@ -36,10 +44,10 @@ void InputManager::MouseCallback(GLFWwindow* window, double xpos, double ypos) {
 		Instance->FirstMouse = false;
 	}
 	float xoffset = xpos - Instance->LastX;
-	float yoffset = ypos - Instance->LastY;
+	float yoffset = Instance->LastY - ypos;
 	Instance->LastX = xpos;
 	Instance->LastY = ypos;
-	if (Instance->Camera->CanMoveable())
+	if (Instance->Camera->CanMoveable() && Instance->RightMouseButtonPress)
 	{
 		Instance->Camera->ProcessMouseMovement(xoffset, yoffset);
 	}
