@@ -23,7 +23,6 @@ void InputManager::Update(float deltaTime) {
 	else {
 		Instance->RightMouseButtonPress = false;
 	}
-
 	if (!Instance->Camera->CanMoveable())
 		return;
 	if (glfwGetKey(Window, GLFW_KEY_W) == GLFW_PRESS)

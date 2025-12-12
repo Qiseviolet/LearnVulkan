@@ -5,6 +5,8 @@
 class InputManager
 {
 public:
+
+
 	InputManager(GLFWwindow* window, CameraBase* camera);
 	void Update(float deltaTime);
 private:
