@@ -103,7 +103,6 @@ void HelloTriangleApplication::cleanup() {
     glfwTerminate();
 }
 
-#pragma region ʵ��
 void HelloTriangleApplication::createInstance() {
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -135,7 +134,6 @@ std::vector<const char*> HelloTriangleApplication::getRequiredExtensions() {
 
     return extensions;
 }
-#pragma endregion
 
 void HelloTriangleApplication::createSurface() {
     if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
@@ -143,7 +141,6 @@ void HelloTriangleApplication::createSurface() {
     }
 }
 
-#pragma region ������
 
 VkSurfaceFormatKHR HelloTriangleApplication::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
     for (const auto& availableFormat : availableFormats) {
@@ -236,9 +233,7 @@ void HelloTriangleApplication::createSwapChain() {
     swapChainImageFormat = surfaceFormat.format;
     swapChainExtent = extent;
 }
-#pragma endregion
 
-#pragma region ͼ����ͼ
 VkImageView HelloTriangleApplication::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels){
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -264,9 +259,7 @@ void HelloTriangleApplication::createImageViews() {
         swapChainImageViews[i] = createImageView(swapChainImages[i], swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
     }
 }
-#pragma endregion
 
-#pragma region �̶�����
 void HelloTriangleApplication::createGraphicsPipeline() {
     VkShaderModule vertShaderModule = Shader::createShaderModule(&vDevice, "./Shader/vert.spv");
     VkShaderModule fragShaderModule = Shader::createShaderModule(&vDevice, "./Shader/frag.spv");
@@ -384,9 +377,7 @@ void HelloTriangleApplication::createGraphicsPipeline() {
     vkDestroyShaderModule(vDevice.device, fragShaderModule, nullptr);
     vkDestroyShaderModule(vDevice.device, vertShaderModule, nullptr);
 }
-#pragma endregion
 
-#pragma region ��Ⱦ����
 void HelloTriangleApplication::createRenderPass() {
     VkAttachmentDescription colorAttachment{};
     colorAttachment.format = swapChainImageFormat;
@@ -430,9 +421,6 @@ void HelloTriangleApplication::createRenderPass() {
     colorAttachmentResolveRef.attachment = 2;
     colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-    //������Ⱦ���̿����ɶ���ӹ������
-    //�ӹ����Ǻ�����Ⱦ����������ǰһ�������е�֡����������
-    //����ʹ�õ����ӹ���
     VkSubpassDescription subpass{};
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass.colorAttachmentCount = 1;
@@ -448,7 +436,6 @@ void HelloTriangleApplication::createRenderPass() {
     dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
     dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
-    //ʹ�ø�������ͨ��������䣬������Ⱦͨ������
     std::array<VkAttachmentDescription, 3> attachments = { colorAttachment, depthAttachment, colorAttachmentResolve };
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -463,9 +450,7 @@ void HelloTriangleApplication::createRenderPass() {
         throw std::runtime_error("failed to create render pass!");
     }
 }
-#pragma endregion
 
-#pragma region ֡����
 void HelloTriangleApplication::createFramebuffers() {
     swapChainFramebuffers.resize(swapChainImageViews.size());
     //����ͼ����ͼ�����д���֡����
@@ -490,9 +475,7 @@ void HelloTriangleApplication::createFramebuffers() {
         }
     }
 }
-#pragma endregion
 
-#pragma region
 void HelloTriangleApplication::createCommandPool() {
     QueueFamilyIndices queueFamilyIndices = vPhysicalDevice.findQueueFamilies(vPhysicalDevice.physicalDevice);
 
@@ -543,10 +526,8 @@ void HelloTriangleApplication::recordCommandBuffer(VkCommandBuffer commandBuffer
 
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-    //��ͼ�ι���
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
-    //������������֮ǰ����������������ӿںͲü�
     VkViewport viewport{};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
@@ -571,7 +552,6 @@ void HelloTriangleApplication::recordCommandBuffer(VkCommandBuffer commandBuffer
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
     vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(vModel.indices.size()), 1, 0, 0, 0);
 
-    //������Ⱦͨ��
     vkCmdEndRenderPass(commandBuffer);
 
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
@@ -579,9 +559,7 @@ void HelloTriangleApplication::recordCommandBuffer(VkCommandBuffer commandBuffer
     }
 }
 
-#pragma endregion
 
-#pragma region ��Ⱦ�����
 void HelloTriangleApplication::createSyncObjects() {
     imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
@@ -669,9 +647,7 @@ void HelloTriangleApplication::drawFrame() {
 
     currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
-#pragma endregion
 
-#pragma region ����������
 void HelloTriangleApplication::recreateSwapChain() {
     int width = 0, height = 0;
     glfwGetFramebufferSize(window, &width, &height);
@@ -701,17 +677,14 @@ void HelloTriangleApplication::cleanupSwapChain() {
     }
     vkDestroySwapchainKHR(vDevice.device, swapChain, nullptr);
 }
-#pragma endregion
 
 void HelloTriangleApplication::createDescriptorSetLayout() {
-    //ͳһ������
     VkDescriptorSetLayoutBinding uboLayoutBinding{};
     uboLayoutBinding.binding = 0;
     uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     uboLayoutBinding.descriptorCount = 1;
     uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     uboLayoutBinding.pImmutableSamplers = nullptr;
-    //
     VkDescriptorSetLayoutBinding samplerLayoutBinding{};
     samplerLayoutBinding.binding = 1;
     samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
