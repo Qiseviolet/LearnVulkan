@@ -1,5 +1,4 @@
 #pragma once
-#include "vulkan/vulkan.h"
 #include "VulkanDevice.h"
 #include "VulkanPhyscialDevice.h"
 #include <stdexcept>
@@ -12,7 +11,8 @@ public:
 
     VulkanBuffer() = default;
 
-    void createBuffer(const VulkanPhysicalDevice* physicalDevice, const VulkanDevice* device, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties) {
+    void createBuffer(const VulkanPhysicalDevice* physicalDevice, const VulkanDevice* device,
+        VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties) {
         VkBufferCreateInfo bufferInfo{};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
         bufferInfo.size = size;
@@ -48,6 +48,14 @@ public:
         copyRegion.size = size;
         vkCmdCopyBuffer(commandBuffer, srcBuffer, buffer, 1, &copyRegion);
         device->endSingleTimeCommands(commandPool, commandBuffer, device->graphicsQueue);
+    }
+
+    void writeToMemory(const VulkanDevice* device, const void* src, VkDeviceSize size) const
+    {
+        void* data;
+        vkMapMemory(device->device, memory, 0, size, 0, &data);
+        memcpy(data, src, static_cast<size_t>(size));
+        vkUnmapMemory(device->device, memory);
     }
 };
 

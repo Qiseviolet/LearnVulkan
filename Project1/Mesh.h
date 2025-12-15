@@ -1,9 +1,8 @@
 #pragma once
-#include "vulkan/vulkan.h"
 #include <glm/glm.hpp>
-#include "Model.h"
 #include "VulkanDevice.h"
 #include "VulkanBuffer.h"
+#include "Model.h"
 
 struct Mesh
 {

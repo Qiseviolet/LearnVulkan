@@ -12,9 +12,12 @@
 #include <string>
 #include <chrono>
 #include "InputManager.h"
+#include "VulkanDevice.h"
 #include "Model.h"
 #include "Mesh.h"
-#include "VulkanDevice.h"
+#include "Texture.h"
+#include "Shader.h"
+#include "UniformBuffer.h"
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
@@ -32,7 +35,7 @@ struct UniformBufferObject {
 
 class HelloTriangleApplication {
 public:
-	void run();
+    void run();
 private:
     GLFWwindow* window;
     VkInstance instance;
@@ -41,7 +44,26 @@ private:
     VulkanDevice vDevice;
     Model vModel;
     Mesh vMesh;
+    Texture texture;
+    InputManager* inputManager;
+    CameraBase* camera;
+    VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+    VkFormat depthFormat;
+    VulkanImage _depthImage;
+    VulkanImage _colorImage;
+    float mainLoopLastTime = 0.0f;
+    std::vector<UniformBuffer> uniformBuffers;
 
+    void createInstance();
+    void createSurface();
+    std::vector<const char*> getRequiredExtensions();
+    VkFormat findDepthFormat() const;
+    void createDepthResources();
+    void createColorResources();
+    void createUniformBuffers();
+    void updateUniformBuffer(uint32_t currentImage);
+
+    
     VkSwapchainKHR swapChain;
     std::vector<VkImage> swapChainImages;
     VkFormat swapChainImageFormat;
@@ -66,14 +88,6 @@ private:
     void mainLoop();
     void cleanup();
 
-    void createInstance();
-    std::vector<const char*> getRequiredExtensions();
-
-    void createSurface();
-
-    bool checkDeviceExtensionSupport(VkPhysicalDevice device);
-    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
-  
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
     VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
@@ -81,25 +95,8 @@ private:
 
     void createImageViews();
 
-    static std::vector<char> readFile(const std::string& filename) {
-        std::ifstream file(filename, std::ios::ate | std::ios::binary);
-
-        if (!file.is_open()) {
-            throw std::runtime_error("failed to open file!");
-        }
-
-        size_t fileSize = (size_t)file.tellg();
-        std::vector<char> buffer(fileSize);
-
-        file.seekg(0);
-        file.read(buffer.data(), fileSize);
-
-        file.close();
-
-        return buffer;
-    }
+    
     void createGraphicsPipeline();
-    VkShaderModule createShaderModule(const std::vector<char>& code);
 
     void createRenderPass();
 
@@ -123,63 +120,23 @@ private:
         auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
         app->framebufferResized = true;
     }
-    
 
     struct PushConstantData {
         glm::mat4 model;
     };
 
-    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
-
-    void createBuffer(VkDeviceSize, VkBufferUsageFlags, VkMemoryPropertyFlags, VkBuffer&, VkDeviceMemory&);
 
     VkDescriptorSetLayout descriptorSetLayout;
     void createDescriptorSetLayout();
-    std::vector<VkBuffer> uniformBuffers;
-    std::vector<VkDeviceMemory> uniformBuffersMemory;
-    std::vector<void*> uniformBuffersMapped;
-    void createUniformBuffers();
-    void updateUniformBuffer(uint32_t currentImage);
-    float mainLoopLastTime = 0.0f;
-    InputManager* inputManager;
-    CameraBase* camera;
-
+    
+    
+    VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels);
+    
     VkDescriptorPool descriptorPool;
     void createDescriptorPool();
     std::vector<VkDescriptorSet> descriptorSets;
     void createDescriptorSets();
 
-    uint32_t mipLevels;
-
-    void createTextureImage();
-    VkImage textureImage;
-    VkDeviceMemory textureImageMemory;
-    void createImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
-
-    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayOut, uint32_t mipLevels);
-    void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
-
-    VkImageView textureImageView;
-    void createTextureImageView();
-    VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels);
-    VkSampler textureSampler;
-    void createTextureSampler();
-
-    VkImage depthImage;
-    VkDeviceMemory depthImageMemory;
-    VkImageView depthImageView;
-    void createDepthResources();
-    VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
-    VkFormat findDepthFormat();
-    bool hasStencilComponent(VkFormat format);
-
-    void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
-
-    VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
-    VkSampleCountFlagBits getMaxUsableSampleCount();
-    VkImage colorImage;
-    VkDeviceMemory colorImageMemory;
-    VkImageView colorImageView;
-    void createColorResources();
+    
 };
  
