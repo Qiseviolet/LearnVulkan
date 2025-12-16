@@ -1,12 +1,14 @@
 #pragma once
-#include "vulkan/vulkan.h"
-#include <stdexcept>
-#include <vector>
 #include <set>
+#include <stdexcept>
 #include <string>
-#include "QueueFamilyIndices.h"
-#include "SwapChainSupportDetails.h"
-#include "DeviceExtension.h"
+#include <vector>
+#include "VulkanConfig/QueueFamilyIndices.h"
+#include "VulkanConfig/SwapChainSupportDetails.h"
+
+const static std::vector<const char*> deviceExtensions = {
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME
+};
 
 class VulkanPhysicalDevice
 {
@@ -20,9 +22,7 @@ private:
 public:
     VulkanPhysicalDevice() = default;
 
-    VulkanPhysicalDevice(VkInstance* i, VkSurfaceKHR* s) : instance(i), surface(s) {}
-
-    ~VulkanPhysicalDevice() = default;
+    VulkanPhysicalDevice(VkInstance& i, VkSurfaceKHR& s) : instance(&i), surface(&s) {}
 
     void pickPhysicalDevice() {
         uint32_t deviceCount = 0;
@@ -43,7 +43,7 @@ public:
         }
     }
 
-    bool isDeviceSuitable(VkPhysicalDevice device) const
+    bool isDeviceSuitable(const VkPhysicalDevice& device) const
     {
         QueueFamilyIndices indices = findQueueFamilies(device);
 
@@ -64,7 +64,7 @@ public:
             supportedFeatures.samplerAnisotropy;
     }
 
-    static bool checkDeviceExtensionSupport(VkPhysicalDevice device)
+    static bool checkDeviceExtensionSupport(const VkPhysicalDevice& device)
     {
         uint32_t extensionCount;
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
@@ -81,7 +81,7 @@ public:
         return requiredExtensions.empty();
     }
 
-    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device) const
+    SwapChainSupportDetails querySwapChainSupport(const VkPhysicalDevice& device) const
     {
         SwapChainSupportDetails details;
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, *surface, &details.capabilities);
@@ -100,7 +100,7 @@ public:
         return details;
     }
 
-    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) const
+    QueueFamilyIndices findQueueFamilies(const VkPhysicalDevice& device) const
     {
         QueueFamilyIndices indices;
         uint32_t queueFamilyCount = 0;

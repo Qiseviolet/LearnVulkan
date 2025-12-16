@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include "VulkanBuffer.h"
-#include "vulkan/vulkan.h"
 #include "VulkanPhyscialDevice.h"
 #include "VulkanDevice.h"
 
@@ -13,7 +12,7 @@ public:
 
     VulkanImage() = default;
 
-    void createImage(const VulkanPhysicalDevice* physicalDevice, const VulkanDevice* device,
+    void createImage(const VulkanPhysicalDevice& physicalDevice, const VulkanDevice& device,
         uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples,
         VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties)
     {
@@ -31,24 +30,24 @@ public:
         imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         imageInfo.samples = numSamples;
-        if (vkCreateImage(device->device, &imageInfo, nullptr, &image)) {
+        if (vkCreateImage(device.device, &imageInfo, nullptr, &image)) {
             throw std::runtime_error("failed to create image!");
         }
 
         VkMemoryRequirements memRequirments;
-        vkGetImageMemoryRequirements(device->device, image, &memRequirments);
+        vkGetImageMemoryRequirements(device.device, image, &memRequirments);
 
         VkMemoryAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         allocInfo.allocationSize = memRequirments.size;
-        allocInfo.memoryTypeIndex = physicalDevice->findMemoryType(memRequirments.memoryTypeBits, properties);
-        if (vkAllocateMemory(device->device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
+        allocInfo.memoryTypeIndex = physicalDevice.findMemoryType(memRequirments.memoryTypeBits, properties);
+        if (vkAllocateMemory(device.device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate image memory!");
         }
-        vkBindImageMemory(device->device, image, imageMemory, 0);
+        vkBindImageMemory(device.device, image, imageMemory, 0);
     }
 
-    VkImageView createImageView(const VulkanDevice* device, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels)
+    VkImageView createImageView(const VulkanDevice& device, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels)
     {
         VkImageViewCreateInfo viewInfo{};
         viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -61,16 +60,16 @@ public:
         viewInfo.subresourceRange.baseArrayLayer = 0;
         viewInfo.subresourceRange.layerCount = 1;
         VkImageView result = VK_NULL_HANDLE;
-        if (vkCreateImageView(device->device, &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
+        if (vkCreateImageView(device.device, &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
             throw std::runtime_error("failed to create texture image view!");
         }
         return result;
     }
 
-    void copyBufferToImage(const VulkanDevice* device, VkCommandPool commandPool,
-        uint32_t width, uint32_t height, const VulkanBuffer* buffer) const
+    void copyBufferToImage(const VulkanDevice& device, VkCommandPool commandPool,
+        uint32_t width, uint32_t height, const VulkanBuffer& buffer) const
     {
-        VkCommandBuffer commandBuffer = device->beginSingleTimeCommands(commandPool);
+        VkCommandBuffer commandBuffer = device.beginSingleTimeCommands(commandPool);
         VkBufferImageCopy region{};
         region.bufferOffset = 0;
         region.bufferRowLength = 0;
@@ -80,17 +79,17 @@ public:
         region.imageSubresource.layerCount = 1;
         region.imageOffset = { 0, 0, 0 };
         region.imageExtent = {width, height, 1};
-        vkCmdCopyBufferToImage(commandBuffer, buffer->buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-        device->endSingleTimeCommands(commandPool, commandBuffer, device->graphicsQueue);
+        vkCmdCopyBufferToImage(commandBuffer, buffer.buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+        device.endSingleTimeCommands(commandPool, commandBuffer, device.graphicsQueue);
     }
 
-    void ReleaseImage(const VulkanDevice* device) const
+    void ReleaseImage(const VulkanDevice& device) const
     {
         if (imageView)
-            vkDestroyImageView(device->device, imageView, nullptr);
+            vkDestroyImageView(device.device, imageView, nullptr);
         if (image)
-            vkDestroyImage(device->device, image, nullptr);
+            vkDestroyImage(device.device, image, nullptr);
         if (imageMemory)
-            vkFreeMemory(device->device, imageMemory, nullptr);
+            vkFreeMemory(device.device, imageMemory, nullptr);
     }
 };

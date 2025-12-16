@@ -1,8 +1,6 @@
 #pragma once
-#include "vulkan/vulkan.h"
-#include "GLFW/glfw3.h"
 #include "VulkanPhyscialDevice.h"
-#include "DeviceExtension.h"
+#include "VulkanConfig/QueueFamilyIndices.h"
 
 class VulkanDevice
 {
@@ -17,9 +15,10 @@ private:
 public:
     VulkanDevice() = default;
 
-    VulkanDevice(VulkanPhysicalDevice* physicalDev) : mPhysicalDevice(physicalDev) {}
+    VulkanDevice(VulkanPhysicalDevice& physicalDev) : mPhysicalDevice(&physicalDev) {}
 
-    ~VulkanDevice() {
+    void destroyDevice() const
+    {
         if (device != VK_NULL_HANDLE) {
             vkDestroyDevice(device, nullptr);
         }
@@ -91,16 +90,6 @@ public:
         vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
         vkQueueWaitIdle(queue);
         vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
-    }
-
-private:
-    static std::vector<const char*> getRequiredExtensions() {
-        uint32_t glfwExtensionCount = 0;
-        const char** glfwExtensions;
-        glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-        std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-        return extensions;
     }
 };
 

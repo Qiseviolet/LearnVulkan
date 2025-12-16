@@ -1,7 +1,7 @@
 #pragma once
 #include <glm/glm.hpp>
-#include "VulkanDevice.h"
-#include "VulkanBuffer.h"
+#include "VulkanCore/VulkanDevice.h"
+#include "VulkanCore/VulkanBuffer.h"
 #include "Model.h"
 
 struct Mesh
@@ -13,7 +13,7 @@ struct Mesh
 	uint64_t vertexCount;
 	glm::mat4 modelMatrix;
  
-	void createVertexBuffer(const VulkanPhysicalDevice* vPhysicalDevice, const VulkanDevice* vDevice, const Model& model, VkCommandPool commandPool) {
+	void createVertexBuffer(const VulkanPhysicalDevice& vPhysicalDevice, const VulkanDevice& vDevice, const Model& model, VkCommandPool commandPool) {
 		VkDeviceSize bufferSize = sizeof(model.vertices[0]) * model.vertices.size();
 
 		VulkanBuffer stagingBuffer;
@@ -21,9 +21,9 @@ struct Mesh
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 		void* data;
-		vkMapMemory(vDevice->device, stagingBuffer.memory, 0, bufferSize, 0, &data);
+		vkMapMemory(vDevice.device, stagingBuffer.memory, 0, bufferSize, 0, &data);
 		memcpy(data, model.vertices.data(), (size_t)bufferSize);
-		vkUnmapMemory(vDevice->device, stagingBuffer.memory);
+		vkUnmapMemory(vDevice.device, stagingBuffer.memory);
 
 		vertexBuffer.createBuffer(vPhysicalDevice, vDevice, bufferSize,
 			VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -33,7 +33,7 @@ struct Mesh
 		stagingBuffer.releaseBuffer(vDevice);
 	}
 
-	void createIndexBuffer(const VulkanPhysicalDevice* vPhysicalDevice, const VulkanDevice* vDevice, const Model& model, VkCommandPool commandPool) {
+	void createIndexBuffer(const VulkanPhysicalDevice& vPhysicalDevice, const VulkanDevice& vDevice, const Model& model, VkCommandPool commandPool) {
 		VkDeviceSize bufferSize = sizeof(model.indices[0]) * model.indices.size();
 
 		VulkanBuffer stagingBuffer;
@@ -41,9 +41,9 @@ struct Mesh
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 		void* data;
-		vkMapMemory(vDevice->device, stagingBuffer.memory, 0, bufferSize, 0, &data);
+		vkMapMemory(vDevice.device, stagingBuffer.memory, 0, bufferSize, 0, &data);
 		memcpy(data, model.indices.data(), (size_t)bufferSize);
-		vkUnmapMemory(vDevice->device, stagingBuffer.memory);
+		vkUnmapMemory(vDevice.device, stagingBuffer.memory);
 
 		indexBuffer.createBuffer(vPhysicalDevice, vDevice, bufferSize,
 			VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -53,7 +53,7 @@ struct Mesh
 		stagingBuffer.releaseBuffer(vDevice);
 	}
 
-	void destroyMesh(const VulkanDevice* vDevice) const
+	void destroyMesh(const VulkanDevice& vDevice) const
 	{
 		vertexBuffer.releaseBuffer(vDevice);
 		indexBuffer.releaseBuffer(vDevice);

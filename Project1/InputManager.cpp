@@ -1,5 +1,4 @@
 #include "InputManager.h"
-#include <iostream>
 
 InputManager* InputManager::Instance = nullptr;
 
@@ -15,7 +14,8 @@ InputManager::InputManager(GLFWwindow* window, CameraBase* camera)
 	LastY = ypos;
 }
 
-void InputManager::Update(float deltaTime) {
+void InputManager::Update(float deltaTime) const
+{
 	if (glfwGetMouseButton(Window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
 	{
 		Instance->RightMouseButtonPress = true;

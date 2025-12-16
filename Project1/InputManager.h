@@ -8,7 +8,7 @@ public:
 
 
 	InputManager(GLFWwindow* window, CameraBase* camera);
-	void Update(float deltaTime);
+	void Update(float deltaTime) const;
 private:
 	GLFWwindow* Window;
 	CameraBase* Camera;

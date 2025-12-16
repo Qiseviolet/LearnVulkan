@@ -1,6 +1,6 @@
 ﻿#pragma once
-#include "VulkanBuffer.h"
-#include "VulkanImage.h"
+#include "VulkanCore/VulkanBuffer.h"
+#include "VulkanCore/VulkanImage.h"
 #include "stb_image.h"
 #include <stdexcept>
 #include <cstdlib>
@@ -19,7 +19,7 @@ public:
     int texHeight;
     int texChannels;
     
-    void loadTextureImage(const VulkanPhysicalDevice* physicalDevice, const VulkanDevice* device,
+    void loadTextureImage(const VulkanPhysicalDevice& physicalDevice, const VulkanDevice& device,
         VkCommandPool commandPool, const std::string& path, VkFormat format)
     {
         stbi_uc* piexls = stbi_load(
@@ -40,16 +40,16 @@ public:
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
         
         transitionImageLayout(device, commandPool, format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-        image.copyBufferToImage(device, commandPool, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), &stagingBuffer);
+        image.copyBufferToImage(device, commandPool, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), stagingBuffer);
         stagingBuffer.releaseBuffer(device);
         generateMipmaps(physicalDevice, device, commandPool, format);
         image.createImageView(device, format, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
     }
 
-    void transitionImageLayout(const VulkanDevice* device, VkCommandPool commandPool,
+    void transitionImageLayout(const VulkanDevice& device, VkCommandPool commandPool,
         VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) const
     {
-        VkCommandBuffer commandBuffer = device->beginSingleTimeCommands(commandPool);
+        VkCommandBuffer commandBuffer = device.beginSingleTimeCommands(commandPool);
         VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         barrier.oldLayout = oldLayout;
@@ -99,18 +99,18 @@ public:
             sourceStage, destinationStage, 
             0, 0, nullptr,
             0, nullptr, 1, &barrier);
-        device->endSingleTimeCommands(commandPool, commandBuffer, device->graphicsQueue);
+        device.endSingleTimeCommands(commandPool, commandBuffer, device.graphicsQueue);
     }
 
-    void generateMipmaps(const VulkanPhysicalDevice* physicalDevice, const VulkanDevice* device, VkCommandPool commandPool,
+    void generateMipmaps(const VulkanPhysicalDevice& physicalDevice, const VulkanDevice& device, VkCommandPool commandPool,
         VkFormat imageFormat) const
     {
         VkFormatProperties formatProperties;
-        vkGetPhysicalDeviceFormatProperties(physicalDevice->physicalDevice, imageFormat, &formatProperties);
+        vkGetPhysicalDeviceFormatProperties(physicalDevice.physicalDevice, imageFormat, &formatProperties);
         if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
             throw std::runtime_error("texture image format does not support linear blitting!");
         }
-        VkCommandBuffer commandBuffer = device->beginSingleTimeCommands(commandPool);
+        VkCommandBuffer commandBuffer = device.beginSingleTimeCommands(commandPool);
         VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         barrier.image = image.image;
@@ -172,16 +172,16 @@ public:
             0, nullptr,
             1, &barrier);
 
-        device->endSingleTimeCommands(commandPool, commandBuffer, device->graphicsQueue);
+        device.endSingleTimeCommands(commandPool, commandBuffer, device.graphicsQueue);
     }
     
-    void destroyTexture(const VulkanDevice* device) const
+    void destroyTexture(const VulkanDevice& device) const
     {
-        vkDestroySampler(device->device, sampler, nullptr);
+        vkDestroySampler(device.device, sampler, nullptr);
         image.ReleaseImage(device);
     }
 
-    void createTextureSampler(const VulkanPhysicalDevice* physicalDevice, const VulkanDevice* device)
+    void createTextureSampler(const VulkanPhysicalDevice& physicalDevice, const VulkanDevice& device)
     {
         VkSamplerCreateInfo samplerInfo{};
         samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -192,7 +192,7 @@ public:
         samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
         samplerInfo.anisotropyEnable = VK_TRUE;
         VkPhysicalDeviceProperties properties{};
-        vkGetPhysicalDeviceProperties(physicalDevice->physicalDevice, &properties);
+        vkGetPhysicalDeviceProperties(physicalDevice.physicalDevice, &properties);
         samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
         samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
         samplerInfo.unnormalizedCoordinates = VK_FALSE;
@@ -202,7 +202,7 @@ public:
         samplerInfo.minLod = 0.0f;//static_cast<float>(mipLevels / 2); 
         samplerInfo.maxLod = VK_LOD_CLAMP_NONE;
         samplerInfo.mipLodBias = 0.0f;
-        if (vkCreateSampler(device->device, &samplerInfo, nullptr, &sampler) != VK_SUCCESS) {
+        if (vkCreateSampler(device.device, &samplerInfo, nullptr, &sampler) != VK_SUCCESS) {
             throw std::runtime_error("failed to create texture sampler!");
         }
     }
