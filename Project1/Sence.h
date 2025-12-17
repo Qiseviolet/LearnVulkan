@@ -1,20 +1,22 @@
 #pragma once
 #include "vulkan/vulkan.h"
-#include "GLFW/glfw3.h"
-#include <string>
-#include <chrono>
+#include <GLFW/glfw3.h>
 #include "InputManager.h"
+#include "Common/Model.h"
+#include "Common/Mesh.h"
+#include "Common/Texture.h"
+#include "Camera/CameraFPS.h"
 #include "VulkanCore/VulkanInstance.h"
 #include "VulkanCore/VulkanSurface.h"
 #include "VulkanCore/VulkanDevice.h"
-#include "Model.h"
-#include "Mesh.h"
-#include "Texture.h"
-#include "UniformBuffer.h"
+#include "VulkanCore/VulkanUniformBuffer.h"
+#include "VulkanCore/VulkanCommandPool.h"
 #include "VulkanCore/VulkanDescriptorPool.h"
 #include "VulkanCore/VulkanDescriptorSetLayout.h"
+#include "VulkanCore/VulkanFence.h"
 #include "VulkanCore/VulkanGraphicsPipeline.h"
 #include "VulkanCore/VulkanRenderPass.h"
+#include "VulkanCore/VulkanSemaphore.h"
 #include "VulkanCore/VulkanSwapChain.h"
 
 const uint32_t WIDTH = 800;
@@ -27,15 +29,11 @@ const std::string TEXTURE_PATH = "./Texture/viking_room.png";
 const std::string VERTEX_SHADER_PATH = "./Shader/vert.spv";
 const std::string FRAGMENT_SHADER_PATH = "./Shader/frag.spv";
 
-struct UniformBufferObject {
-    alignas(16) glm::mat4 model;
-    alignas(16) glm::mat4 view;
-    alignas(16) glm::mat4 proj;
+struct PushConstantData {
+    glm::mat4 model;
 };
 
-class HelloTriangleApplication {
-public:
-    void run();
+class Sence {
 private:
     GLFWwindow* window;
     VulkanInstance vInstance;
@@ -49,51 +47,49 @@ private:
     CameraBase* camera;
     VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
     float mainLoopLastTime = 0.0f;
-    std::vector<UniformBuffer> uniformBuffers;
     VkFormat depthFormat;
     VulkanSwapChain vSwapChain;
-    bool framebufferResized = false;
     VulkanRenderPass vRenderPass;
-    VulkanGraphicsPipeline vGraphicsPipeline;
-    VulkanDescriptorPool vDescriptorPool;
-    VulkanDescriptorSetLayout vDescriptorSetLayout;
     
+    VulkanDescriptorPool vDescriptorPool;
+    std::vector<VkDescriptorPoolSize> loadDescriptorPoolSizes() const;
+    
+    VulkanGraphicsPipeline vGraphicsPipeline;
+    VertexInputDescription loadVertexInputDescription() const;
+    GraphicsPipelineConfig loadGraphicsPipelineConfig() const;
+    
+    VulkanDescriptorSetLayout vDescriptorSetLayout;
+    std::vector<VkDescriptorSetLayoutBinding> createDescriptorSetLayoutBinding() const;
+    
+    std::vector<VulkanUniformBuffer> uniformBuffers;
     void createUniformBuffers();
     void updateUniformBuffer(uint32_t currentImage);
-    
+
+    bool framebufferResized = false;
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
-        auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
+        auto app = reinterpret_cast<Sence*>(glfwGetWindowUserPointer(window));
         app->framebufferResized = true;
     }
 
-
-    VkCommandPool commandPool;
+    std::vector<VkDescriptorSet> descriptorSets;
+    void updateDescriptorSets();
+    
     std::vector<VkCommandBuffer> commandBuffers;
+    VulkanCommandPool vCommandPool;
+    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) const;
 
-    std::vector<VkSemaphore> imageAvailableSemaphores;
-    std::vector<VkSemaphore> renderFinishedSemaphores;
-    std::vector<VkFence> inFlightFences;
+    std::vector<VulkanSemaphore> imageAvailableSemaphores;
+    std::vector<VulkanSemaphore> renderFinishedSemaphores;
+    std::vector<VulkanFence> inFlightFences;
+    void createSyncObjects();
+    
     uint32_t currentFrame = 0;
+    void drawFrame();
 
+public:
     void initWindow();
     void initVulkan();
     void mainLoop();
     void cleanup();
-
-    void createCommandPool();
-    void createCommandBuffers();
-    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
-
-    void createSyncObjects();
-
-    void drawFrame();
-
-
-    struct PushConstantData {
-        glm::mat4 model;
-    };
-
-    std::vector<VkDescriptorSet> descriptorSets;
-    void createDescriptorSets();
 };
  

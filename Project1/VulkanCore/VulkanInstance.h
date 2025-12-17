@@ -9,8 +9,6 @@ class VulkanInstance
 public:
     VkInstance instance = VK_NULL_HANDLE;
 
-    VulkanInstance() = default;
-
     void createInstance(const std::string& appName)
     {
         VkApplicationInfo appInfo{};
@@ -34,9 +32,12 @@ public:
         }
     }
 
-    void destroyInstance()
+    void destroyInstance() const
     {
-        
+        if (instance != VK_NULL_HANDLE)
+        {
+            vkDestroyInstance(instance, nullptr);
+        }
     }
     
 private:

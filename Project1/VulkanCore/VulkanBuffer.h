@@ -3,6 +3,8 @@
 #include "VulkanPhyscialDevice.h"
 #include <stdexcept>
 
+#include "VulkanCommandPool.h"
+
 class VulkanBuffer
 {
 public:
@@ -41,13 +43,13 @@ public:
             vkFreeMemory(device.device, memory, nullptr);
     }
 
-    void copyBuffer(const VulkanDevice& device, VkCommandPool commandPool, VkBuffer srcBuffer, VkDeviceSize size) const
+    void copyBuffer(const VulkanDevice& device, const VulkanCommandPool& commandPool, VkBuffer srcBuffer, VkDeviceSize size) const
     {
-        VkCommandBuffer commandBuffer = device.beginSingleTimeCommands(commandPool);
+        VkCommandBuffer commandBuffer = commandPool.beginSingleTimeCommands(device, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
         VkBufferCopy copyRegion{};
         copyRegion.size = size;
         vkCmdCopyBuffer(commandBuffer, srcBuffer, buffer, 1, &copyRegion);
-        device.endSingleTimeCommands(commandPool, commandBuffer, device.graphicsQueue);
+        commandPool.endSingleTimeCommands(device, commandBuffer, device.graphicsQueue);
     }
 
     void writeToMemory(const VulkanDevice& device, const void* src, VkDeviceSize size) const

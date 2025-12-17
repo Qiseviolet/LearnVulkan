@@ -1,9 +1,12 @@
-#include "HelloTriangleApplication.h"
+#include "Sence.h"
 
 int main() {
-	HelloTriangleApplication app;
+	Sence scene;
 	try {
-		app.run();
+		scene.initWindow();
+		scene.initVulkan();
+		scene.mainLoop();
+		scene.cleanup();
 	}
 	catch (const std::exception& e) {
 		std::cerr << e.what() << std::endl;

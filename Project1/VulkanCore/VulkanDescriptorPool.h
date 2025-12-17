@@ -3,16 +3,10 @@
 
 class VulkanDescriptorPool
 {
-private:
-    VulkanDevice* device;
 public:
     VkDescriptorPool descriptorPool;
 
-    VulkanDescriptorPool() : device(nullptr), descriptorPool(VK_NULL_HANDLE) {}
-    
-    VulkanDescriptorPool(VulkanDevice* device) : device(device), descriptorPool(VK_NULL_HANDLE) {}
-
-    void createDescriptorPool(uint32_t poolSizeCount, const VkDescriptorPoolSize* poolSize, uint32_t maxSets)
+    void createDescriptorPool(const VulkanDevice* device, uint32_t poolSizeCount, const VkDescriptorPoolSize* poolSize, uint32_t maxSets)
     {
         VkDescriptorPoolCreateInfo descriptorPoolInfo{};
         descriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -24,7 +18,7 @@ public:
         }
     }
 
-    void destroyDescriptorPool() const
+    void destroyDescriptorPool(const VulkanDevice* device) const
     {
         if (descriptorPool != VK_NULL_HANDLE)
         {
@@ -32,7 +26,7 @@ public:
         }
     }
 
-    std::vector<VkDescriptorSet> allocateDescriptorSets(const VkDescriptorSetLayout* descriptorSetLayout, uint32_t descriptorSetCount) const
+    std::vector<VkDescriptorSet> allocateDescriptorSets(const VulkanDevice* device, const VkDescriptorSetLayout* descriptorSetLayout, uint32_t descriptorSetCount) const
     {
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;

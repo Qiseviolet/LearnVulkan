@@ -1,6 +1,7 @@
 #pragma once
 #include "VulkanPhyscialDevice.h"
-#include "VulkanConfig/QueueFamilyIndices.h"
+#include "VulkanSurface.h"
+#include "../VulkanConfig/QueueFamilyIndices.h"
 
 class VulkanDevice
 {
@@ -9,14 +10,6 @@ public:
     VkQueue graphicsQueue = VK_NULL_HANDLE;
     VkQueue presentQueue = VK_NULL_HANDLE;
 
-private:
-    VulkanPhysicalDevice *mPhysicalDevice = nullptr;
-
-public:
-    VulkanDevice() = default;
-
-    VulkanDevice(VulkanPhysicalDevice& physicalDev) : mPhysicalDevice(&physicalDev) {}
-
     void destroyDevice() const
     {
         if (device != VK_NULL_HANDLE) {
@@ -24,8 +17,8 @@ public:
         }
     }
 
-    void createLogicalDevice() {
-        QueueFamilyIndices indices = mPhysicalDevice->findQueueFamilies(mPhysicalDevice->physicalDevice);
+    void createLogicalDevice(const VulkanPhysicalDevice& vPhysicalDevice, const VulkanSurface& vSurface){
+        QueueFamilyIndices indices = VulkanPhysicalDevice::findQueueFamilies(vPhysicalDevice.physicalDevice, vSurface.surface);
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
         std::set<uint32_t> uniqueQueueFamilies = { indices.graphicsFamily.value(), indices.presentFamily.value() };
         float queuePriority = 1.0f;
@@ -51,45 +44,12 @@ public:
         createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
         createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
-        if (vkCreateDevice(mPhysicalDevice->physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
+        if (vkCreateDevice(vPhysicalDevice.physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
             throw std::runtime_error("failed to create logical device!");
         }
 
         vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
         vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
-    }
-
-    VkCommandBuffer beginSingleTimeCommands(VkCommandPool commandPool) const
-    {
-        VkCommandBufferAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandPool = commandPool;
-        allocInfo.commandBufferCount = 1;
-
-        VkCommandBuffer commandBuffer;
-        vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
-
-        VkCommandBufferBeginInfo beginInfo{};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-        vkBeginCommandBuffer(commandBuffer, &beginInfo);
-
-        return commandBuffer;
-    }
-
-    void endSingleTimeCommands(VkCommandPool commandPool, VkCommandBuffer commandBuffer, VkQueue queue) const
-    {
-        vkEndCommandBuffer(commandBuffer);
-
-        VkSubmitInfo submitInfo{};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffer;
-        vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-        vkQueueWaitIdle(queue);
-        vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
     }
 };
 

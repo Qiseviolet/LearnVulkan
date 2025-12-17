@@ -3,6 +3,7 @@
 #include "VulkanCore/VulkanDevice.h"
 #include "VulkanCore/VulkanBuffer.h"
 #include "Model.h"
+#include "VulkanCore/VulkanCommandPool.h"
 
 struct Mesh
 {
@@ -13,7 +14,7 @@ struct Mesh
 	uint64_t vertexCount;
 	glm::mat4 modelMatrix;
  
-	void createVertexBuffer(const VulkanPhysicalDevice& vPhysicalDevice, const VulkanDevice& vDevice, const Model& model, VkCommandPool commandPool) {
+	void createVertexBuffer(const VulkanPhysicalDevice& vPhysicalDevice, const VulkanDevice& vDevice, const Model& model, const VulkanCommandPool& commandPool) {
 		VkDeviceSize bufferSize = sizeof(model.vertices[0]) * model.vertices.size();
 
 		VulkanBuffer stagingBuffer;
@@ -33,7 +34,7 @@ struct Mesh
 		stagingBuffer.releaseBuffer(vDevice);
 	}
 
-	void createIndexBuffer(const VulkanPhysicalDevice& vPhysicalDevice, const VulkanDevice& vDevice, const Model& model, VkCommandPool commandPool) {
+	void createIndexBuffer(const VulkanPhysicalDevice& vPhysicalDevice, const VulkanDevice& vDevice, const Model& model, const VulkanCommandPool& commandPool) {
 		VkDeviceSize bufferSize = sizeof(model.indices[0]) * model.indices.size();
 
 		VulkanBuffer stagingBuffer;

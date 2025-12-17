@@ -1,7 +1,7 @@
 ﻿#pragma once
-#include "VulkanCore/VulkanBuffer.h"
+#include "VulkanBuffer.h"
 
-class UniformBuffer
+class VulkanUniformBuffer
 {
 public:
     VulkanBuffer vBuffer;

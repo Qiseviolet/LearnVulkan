@@ -8,7 +8,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/hash.hpp>
-#include "Libraries/tinyobjloader-release/tiny_obj_loader.h"
+#include "../Libraries/tinyobjloader-release/tiny_obj_loader.h"
 #include <unordered_map>
 
 struct Vertex {

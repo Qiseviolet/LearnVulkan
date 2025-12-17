@@ -3,8 +3,9 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include "VulkanConfig/QueueFamilyIndices.h"
-#include "VulkanConfig/SwapChainSupportDetails.h"
+#include "VulkanSurface.h"
+#include "../VulkanConfig/QueueFamilyIndices.h"
+#include "../VulkanConfig/SwapChainSupportDetails.h"
 
 const static std::vector<const char*> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
@@ -15,25 +16,16 @@ class VulkanPhysicalDevice
 public:
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 
-private:
-    VkInstance *instance = nullptr;
-    VkSurfaceKHR *surface = nullptr;
-
-public:
-    VulkanPhysicalDevice() = default;
-
-    VulkanPhysicalDevice(VkInstance& i, VkSurfaceKHR& s) : instance(&i), surface(&s) {}
-
-    void pickPhysicalDevice() {
+    void pickPhysicalDevice(const VulkanInstance& instance, const VulkanSurface& surface) {
         uint32_t deviceCount = 0;
-        vkEnumeratePhysicalDevices(*instance, &deviceCount, nullptr);
+        vkEnumeratePhysicalDevices(instance.instance, &deviceCount, nullptr);
         if (deviceCount == 0) {
             throw std::runtime_error("failed to find GPUs with Vulkan support!");
         }
         std::vector<VkPhysicalDevice> devices(deviceCount);
-        vkEnumeratePhysicalDevices(*instance, &deviceCount, devices.data());
+        vkEnumeratePhysicalDevices(instance.instance, &deviceCount, devices.data());
         for (const auto& device : devices) {
-            if (isDeviceSuitable(device)) {
+            if (isDeviceSuitable(device, surface.surface)) {
                 physicalDevice = device;
                 break;
             }
@@ -43,15 +35,15 @@ public:
         }
     }
 
-    bool isDeviceSuitable(const VkPhysicalDevice& device) const
+    static bool isDeviceSuitable(const VkPhysicalDevice& device, const VkSurfaceKHR& surface)
     {
-        QueueFamilyIndices indices = findQueueFamilies(device);
+        QueueFamilyIndices indices = findQueueFamilies(device, surface);
 
         bool extensionsSupported = checkDeviceExtensionSupport(device);
 
         bool swapChainAdequate = false;
         if (extensionsSupported) {
-            SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
+            SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device, surface);
             swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
         }
 
@@ -81,26 +73,26 @@ public:
         return requiredExtensions.empty();
     }
 
-    SwapChainSupportDetails querySwapChainSupport(const VkPhysicalDevice& device) const
+    static SwapChainSupportDetails querySwapChainSupport(const VkPhysicalDevice& device, const VkSurfaceKHR& surface)
     {
         SwapChainSupportDetails details;
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, *surface, &details.capabilities);
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
         uint32_t formatCount;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(device, *surface, &formatCount, nullptr);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
         if (formatCount != 0) {
             details.formats.resize(formatCount);
-            vkGetPhysicalDeviceSurfaceFormatsKHR(device, *surface, &formatCount, details.formats.data());
+            vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
         }
         uint32_t presentModeCount;
-        vkGetPhysicalDeviceSurfacePresentModesKHR(device, *surface, &presentModeCount, nullptr);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
         if (presentModeCount != 0) {
             details.presentModes.resize(presentModeCount);
-            vkGetPhysicalDeviceSurfacePresentModesKHR(device, *surface, &presentModeCount, details.presentModes.data());
+            vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
         }
         return details;
     }
 
-    QueueFamilyIndices findQueueFamilies(const VkPhysicalDevice& device) const
+    static QueueFamilyIndices findQueueFamilies(const VkPhysicalDevice& device, const VkSurfaceKHR& surface)
     {
         QueueFamilyIndices indices;
         uint32_t queueFamilyCount = 0;
@@ -113,7 +105,7 @@ public:
                 indices.graphicsFamily = i;
             }
             VkBool32 presentSupport = false;
-            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, *surface, &presentSupport);
+            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
             if (presentSupport) {
                 indices.presentFamily = i;
             }

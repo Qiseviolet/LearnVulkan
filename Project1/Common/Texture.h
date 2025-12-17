@@ -1,6 +1,7 @@
 ﻿#pragma once
-#include "VulkanCore/VulkanBuffer.h"
-#include "VulkanCore/VulkanImage.h"
+#include "../VulkanCore/VulkanBuffer.h"
+#include "../VulkanCore/VulkanImage.h"
+#include "../VulkanCore/VulkanCommandPool.h"
 #include "stb_image.h"
 #include <stdexcept>
 #include <cstdlib>
@@ -8,6 +9,7 @@
 #include <fstream>
 #include <string>
 #include <chrono>
+
 
 class Texture
 {
@@ -20,7 +22,7 @@ public:
     int texChannels;
     
     void loadTextureImage(const VulkanPhysicalDevice& physicalDevice, const VulkanDevice& device,
-        VkCommandPool commandPool, const std::string& path, VkFormat format)
+        const VulkanCommandPool& commandPool, const std::string& path, VkFormat format)
     {
         stbi_uc* piexls = stbi_load(
             path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
@@ -46,10 +48,10 @@ public:
         image.createImageView(device, format, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
     }
 
-    void transitionImageLayout(const VulkanDevice& device, VkCommandPool commandPool,
+    void transitionImageLayout(const VulkanDevice& device, const VulkanCommandPool& commandPool,
         VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) const
     {
-        VkCommandBuffer commandBuffer = device.beginSingleTimeCommands(commandPool);
+        VkCommandBuffer commandBuffer = commandPool.beginSingleTimeCommands(device, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
         VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         barrier.oldLayout = oldLayout;
@@ -99,18 +101,18 @@ public:
             sourceStage, destinationStage, 
             0, 0, nullptr,
             0, nullptr, 1, &barrier);
-        device.endSingleTimeCommands(commandPool, commandBuffer, device.graphicsQueue);
+        commandPool.endSingleTimeCommands(device, commandBuffer, device.graphicsQueue);
     }
 
-    void generateMipmaps(const VulkanPhysicalDevice& physicalDevice, const VulkanDevice& device, VkCommandPool commandPool,
-        VkFormat imageFormat) const
+    void generateMipmaps(const VulkanPhysicalDevice& physicalDevice, const VulkanDevice& device,
+        const VulkanCommandPool& commandPool, VkFormat imageFormat) const
     {
         VkFormatProperties formatProperties;
         vkGetPhysicalDeviceFormatProperties(physicalDevice.physicalDevice, imageFormat, &formatProperties);
         if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
             throw std::runtime_error("texture image format does not support linear blitting!");
         }
-        VkCommandBuffer commandBuffer = device.beginSingleTimeCommands(commandPool);
+        VkCommandBuffer commandBuffer = commandPool.beginSingleTimeCommands(device, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
         VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         barrier.image = image.image;
@@ -172,7 +174,7 @@ public:
             0, nullptr,
             1, &barrier);
 
-        device.endSingleTimeCommands(commandPool, commandBuffer, device.graphicsQueue);
+        commandPool.endSingleTimeCommands(device, commandBuffer, device.graphicsQueue);
     }
     
     void destroyTexture(const VulkanDevice& device) const

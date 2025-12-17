@@ -1,6 +1,5 @@
 #version 450
-layout(binding = 0) uniform UninformBufferObject{
-    mat4 model;
+layout(binding = 0) uniform CameraMatrixUbo{
     mat4 view;
     mat4 proj;
 } ubo;

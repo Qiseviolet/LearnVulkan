@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "VulkanBuffer.h"
+#include "VulkanCommandPool.h"
 #include "VulkanPhyscialDevice.h"
 #include "VulkanDevice.h"
 
@@ -66,10 +67,10 @@ public:
         return result;
     }
 
-    void copyBufferToImage(const VulkanDevice& device, VkCommandPool commandPool,
+    void copyBufferToImage(const VulkanDevice& device, const VulkanCommandPool& commandPool,
         uint32_t width, uint32_t height, const VulkanBuffer& buffer) const
     {
-        VkCommandBuffer commandBuffer = device.beginSingleTimeCommands(commandPool);
+        VkCommandBuffer commandBuffer = commandPool.beginSingleTimeCommands(device, VK_COMMAND_BUFFER_LEVEL_PRIMARY);
         VkBufferImageCopy region{};
         region.bufferOffset = 0;
         region.bufferRowLength = 0;
@@ -80,7 +81,7 @@ public:
         region.imageOffset = { 0, 0, 0 };
         region.imageExtent = {width, height, 1};
         vkCmdCopyBufferToImage(commandBuffer, buffer.buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-        device.endSingleTimeCommands(commandPool, commandBuffer, device.graphicsQueue);
+        commandPool.endSingleTimeCommands(device, commandBuffer, device.graphicsQueue);
     }
 
     void ReleaseImage(const VulkanDevice& device) const

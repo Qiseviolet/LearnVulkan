@@ -2,17 +2,18 @@
 #include <stdexcept>
 #include <vector>
 #include <fstream>
-#include "VulkanCore/VulkanDevice.h"
+#include "../VulkanCore/VulkanDevice.h"
 
 class Shader
 {
 private:
-    VulkanDevice* vDevice = nullptr;
+    const VulkanDevice* vDevice = nullptr;
     VkShaderModule shaderModule = VK_NULL_HANDLE;
     VkPipelineShaderStageCreateInfo shaderStageInfo{};
     
 public:
-    Shader(VulkanDevice* device) : vDevice(device) {}
+    Shader(const VulkanDevice* device) : vDevice(device){}
+    
     ~Shader()
     {
         if (shaderModule) vkDestroyShaderModule(vDevice->device, shaderModule, nullptr);
@@ -42,6 +43,7 @@ private:
         if (vkCreateShaderModule(vDevice->device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
             throw std::runtime_error("failed to create shader module!");
         }
+        std::cout << "Shader module created from " << filename << std::endl;
     }
     
     static std::vector<char> readFile(const std::string& filename) {

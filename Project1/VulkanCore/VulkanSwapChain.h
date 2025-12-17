@@ -19,9 +19,9 @@ public:
     VulkanImage colorImage;
     std::vector<VkFramebuffer> swapChainFramebuffers;
     
-    void createSwapChain(const VulkanPhysicalDevice& physicalDevice, const VulkanDevice& device, GLFWwindow* window, VkSurfaceKHR surface)
+    void createSwapChain(const VulkanPhysicalDevice& physicalDevice, const VulkanDevice& device, GLFWwindow* window, const VulkanSurface& surface)
     {
-        SwapChainSupportDetails swapChainSupport = physicalDevice.querySwapChainSupport(physicalDevice.physicalDevice);
+        SwapChainSupportDetails swapChainSupport = VulkanPhysicalDevice::querySwapChainSupport(physicalDevice.physicalDevice, surface.surface);
 
         VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
         VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
@@ -34,7 +34,7 @@ public:
 
         VkSwapchainCreateInfoKHR createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-        createInfo.surface = surface;
+        createInfo.surface = surface.surface;
 
         createInfo.minImageCount = imageCount;
         createInfo.imageFormat = surfaceFormat.format;
@@ -43,7 +43,7 @@ public:
         createInfo.imageArrayLayers = 1;
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-        QueueFamilyIndices indices = physicalDevice.findQueueFamilies(physicalDevice.physicalDevice);
+        QueueFamilyIndices indices = VulkanPhysicalDevice::findQueueFamilies(physicalDevice.physicalDevice, surface.surface);
         uint32_t queueFamilyIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
         if (indices.graphicsFamily != indices.presentFamily) {
             createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
@@ -88,7 +88,7 @@ public:
         vkDestroySwapchainKHR(device.device, swapChain, nullptr);
     }
     
-    void createFramebuffers(const VulkanDevice& device, VkRenderPass renderPass)
+    void createFramebuffers(const VulkanDevice& device, const VkRenderPass& renderPass)
     {
         swapChainFramebuffers.resize(swapChainImageViews.size());
         for (size_t i = 0; i < swapChainImageViews.size(); i++) {
@@ -133,7 +133,7 @@ public:
     }
     
     void recreateSwapChain(const VulkanPhysicalDevice& physicalDevice, const VulkanDevice& device,
-        GLFWwindow* window, VkSurfaceKHR surface, VkRenderPass renderPass, VkSampleCountFlagBits msaaSamples)
+        GLFWwindow* window, const VulkanSurface& surface, VkRenderPass renderPass, VkSampleCountFlagBits msaaSamples)
     {
         int width = 0, height = 0;
         glfwGetFramebufferSize(window, &width, &height);

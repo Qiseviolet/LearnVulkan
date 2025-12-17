@@ -1,9 +1,8 @@
 ﻿#pragma once
 #include "VulkanDevice.h"
-#include "Shader.h"
-#include "VulkanConfig/GraphicsPipelineConfig.h"
-#include "VulkanConfig/VertexInputDescription.h"
-
+#include "../Common/Shader.h"
+#include "../VulkanConfig/GraphicsPipelineConfig.h"
+#include "../VulkanConfig/VertexInputDescription.h"
 #include "VulkanRenderPass.h"
 
 class VulkanGraphicsPipeline
@@ -11,12 +10,12 @@ class VulkanGraphicsPipeline
 public:
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
-    std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 
     void createGraphicsPipeline(const VulkanDevice& device, const VulkanRenderPass& vRenderPass,
         const VkDescriptorSetLayout& descriptorSetLayouts,
         const VertexInputDescription& vertexInput,
         const GraphicsPipelineConfig& config,
+        std::vector<VkPipelineShaderStageCreateInfo>& shaderStages,
         VkSampleCountFlagBits msaaSamples)
     {
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};

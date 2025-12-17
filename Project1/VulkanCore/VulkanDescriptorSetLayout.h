@@ -3,16 +3,10 @@
 
 class VulkanDescriptorSetLayout
 {
-private:
-    VulkanDevice* device;
 public:
     VkDescriptorSetLayout descriptorSetLayout;
 
-    VulkanDescriptorSetLayout() : device(nullptr), descriptorSetLayout(VK_NULL_HANDLE) {}
-    
-    VulkanDescriptorSetLayout(VulkanDevice* device) : device(device), descriptorSetLayout(VK_NULL_HANDLE) {};
-
-    void createDescriptorSetLayout(const VkDescriptorSetLayoutBinding* bindings, uint32_t bindingCount)
+    void createDescriptorSetLayout(const VulkanDevice* device, const VkDescriptorSetLayoutBinding* bindings, uint32_t bindingCount)
     {
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -23,7 +17,7 @@ public:
         }
     }
 
-    void destroyDescriptorSetLayout() const
+    void destroyDescriptorSetLayout(const VulkanDevice* device) const
     {
         if (descriptorSetLayout != VK_NULL_HANDLE)
         {
