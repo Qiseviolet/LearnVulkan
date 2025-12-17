@@ -24,8 +24,7 @@ const uint32_t HEIGHT = 600;
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
-const std::string MODEL_PATH = "./Model/viking_room.obj";
-const std::string TEXTURE_PATH = "./Texture/viking_room.png";
+const std::string TEXTURE_PATH = "./Texture/wood_diff.jpg";
 const std::string VERTEX_SHADER_PATH = "./Shader/vert.spv";
 const std::string FRAGMENT_SHADER_PATH = "./Shader/frag.spv";
 
@@ -40,8 +39,7 @@ private:
     VulkanSurface vSurface;
     VulkanPhysicalDevice vPhysicalDevice;
     VulkanDevice vDevice;
-    Model vModel;
-    Mesh vMesh;
+    std::vector<Mesh> vMeshes;
     Texture texture;
     InputManager* inputManager;
     CameraBase* camera;
@@ -86,6 +84,10 @@ private:
     uint32_t currentFrame = 0;
     void drawFrame();
 
+    void drawMesh(const VkCommandBuffer& commandBuffer, const Mesh& mesh) const;
+
+    void loadModel();
+    
 public:
     void initWindow();
     void initVulkan();

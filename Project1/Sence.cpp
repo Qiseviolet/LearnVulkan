@@ -55,11 +55,7 @@ void Sence::initVulkan() {
     texture.loadTextureImage(vPhysicalDevice, vDevice, vCommandPool, TEXTURE_PATH, VK_FORMAT_R8G8B8A8_SRGB);
     texture.createTextureSampler(vPhysicalDevice, vDevice);
     
-    vModel.loadModel(MODEL_PATH);
-    vMesh.createVertexBuffer(vPhysicalDevice, vDevice, vModel, vCommandPool);
-    vMesh.createIndexBuffer(vPhysicalDevice, vDevice, vModel, vCommandPool);
-    vMesh.modelMatrix = glm::rotate(glm::mat4(1.0f), /*time * */glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-
+    loadModel();
     createUniformBuffers();
 
     std::vector<VkDescriptorPoolSize> poolSizes = loadDescriptorPoolSizes();
@@ -68,6 +64,27 @@ void Sence::initVulkan() {
     updateDescriptorSets();
     commandBuffers = vCommandPool.allocateCommandBuffers(vDevice, VK_COMMAND_BUFFER_LEVEL_PRIMARY, MAX_FRAMES_IN_FLIGHT);
     createSyncObjects();
+}
+
+void Sence::loadModel()
+{
+    static const std::string cubeObj = "./Model/cube.obj";
+    static const std::string sphereObj = "./Model/sphere.obj";
+    static const std::string capsuleObj = "./Model/capsule.obj";
+    static const std::string cylinderObj = "./Model/cylinder.obj";
+    std::vector<Model> models;
+    models.resize(4);
+    models[0].loadModel(cubeObj);
+    models[1].loadModel(sphereObj);
+    models[2].loadModel(capsuleObj);
+    models[3].loadModel(cylinderObj);
+    vMeshes.resize(4);
+    for (size_t i = 0; i < models.size(); i++)
+    {
+        vMeshes[i].createVertexBuffer(vPhysicalDevice, vDevice, models[i], vCommandPool);
+        vMeshes[i].createIndexBuffer(vPhysicalDevice, vDevice, models[i], vCommandPool);
+        vMeshes[i].modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(static_cast<float>(i) * 2.0f - 3.0f, 0.0f, 0.0f));
+    }
 }
 
 void Sence::mainLoop() {
@@ -91,7 +108,10 @@ void Sence::cleanup() {
         uniformBuffer.destroyUniformBuffer(vDevice);
     vDescriptorPool.destroyDescriptorPool(&vDevice);
     vDescriptorSetLayout.destroyDescriptorSetLayout(&vDevice);
-    vMesh.destroyMesh(vDevice);
+    for (auto& mesh : vMeshes)
+    {
+        mesh.destroyMesh(vDevice);
+    }
     for (auto& semaphore : imageAvailableSemaphores)
         semaphore.destroySemaphore(vDevice);
     for (auto& semaphore : renderFinishedSemaphores)
@@ -147,23 +167,30 @@ void Sence::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageInd
     scissor.extent = vSwapChain.swapChainExtent;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-    VkBuffer vertexBuffers[] = { vMesh.vertexBuffer.buffer };
-    VkDeviceSize offsets[] = { 0 };
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-    vkCmdBindIndexBuffer(commandBuffer, vMesh.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-    PushConstantData pushConstant{};
-    pushConstant.model = vMesh.modelMatrix;
-    vkCmdPushConstants(commandBuffer, vGraphicsPipeline.pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstantData), &pushConstant);
-
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vGraphicsPipeline.pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
-
-    vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(vModel.indices.size()), 1, 0, 0, 0);
+    
+    for (auto& mesh : vMeshes)
+    {
+        drawMesh(commandBuffer, mesh);
+    }
 
     vkCmdEndRenderPass(commandBuffer);
 
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
         throw std::runtime_error("failed to record command buffer!");
     }
+}
+
+void Sence::drawMesh(const VkCommandBuffer& commandBuffer, const Mesh& mesh) const
+{
+    VkBuffer vertexBuffers[] = { mesh.vertexBuffer.buffer };
+    VkDeviceSize offsets[] = { 0 };
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+    vkCmdBindIndexBuffer(commandBuffer, mesh.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+    PushConstantData pushConstant{};
+    pushConstant.model = mesh.modelMatrix;
+    vkCmdPushConstants(commandBuffer, vGraphicsPipeline.pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstantData), &pushConstant);
+    vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh.indexCount), 1, 0, 0, 0);
 }
 
 void Sence::createSyncObjects() {

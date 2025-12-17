@@ -96,5 +96,10 @@ struct Model
             }
         }
     }
+
+    void clearModel() {
+        vertices.clear();
+        indices.clear();
+    }
 };
 
