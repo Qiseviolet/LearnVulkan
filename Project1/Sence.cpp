@@ -51,41 +51,38 @@ void Sence::initVulkan() {
     vSwapChain.createFramebuffers(vDevice, vRenderPass.renderPass);
 
     vCommandPool.createCommandPool(vPhysicalDevice, vDevice, vSurface);
-
-    texture.loadTextureImage(vPhysicalDevice, vDevice, vCommandPool, TEXTURE_PATH, VK_FORMAT_R8G8B8A8_SRGB);
-    texture.createTextureSampler(vPhysicalDevice, vDevice);
     
-    loadModel();
     createUniformBuffers();
 
     std::vector<VkDescriptorPoolSize> poolSizes = loadDescriptorPoolSizes();
-    vDescriptorPool.createDescriptorPool(&vDevice,static_cast<uint32_t>(poolSizes.size()), poolSizes.data(), MAX_FRAMES_IN_FLIGHT);
-    
-    updateDescriptorSets();
+    vDescriptorPool.createDescriptorPool(&vDevice,static_cast<uint32_t>(poolSizes.size()), poolSizes.data(), 10);
+    loadObjects();
     commandBuffers = vCommandPool.allocateCommandBuffers(vDevice, VK_COMMAND_BUFFER_LEVEL_PRIMARY, MAX_FRAMES_IN_FLIGHT);
     createSyncObjects();
 }
 
-void Sence::loadModel()
+void Sence::loadObjects()
 {
-    static const std::string cubeObj = "./Model/cube.obj";
     static const std::string sphereObj = "./Model/sphere.obj";
-    static const std::string capsuleObj = "./Model/capsule.obj";
-    static const std::string cylinderObj = "./Model/cylinder.obj";
-    std::vector<Model> models;
-    models.resize(4);
-    models[0].loadModel(cubeObj);
-    models[1].loadModel(sphereObj);
-    models[2].loadModel(capsuleObj);
-    models[3].loadModel(cylinderObj);
-    vMeshes.resize(4);
-    for (size_t i = 0; i < models.size(); i++)
-    {
-        vMeshes[i].createVertexBuffer(vPhysicalDevice, vDevice, models[i], vCommandPool);
-        vMeshes[i].createIndexBuffer(vPhysicalDevice, vDevice, models[i], vCommandPool);
-        vMeshes[i].modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(static_cast<float>(i) * 2.0f - 3.0f, 0.0f, 0.0f));
-    }
+    objects.resize(4);
+    objects[0].loadObject<CameraMatrix>(vPhysicalDevice, vDevice, vCommandPool, sphereObj,
+        glm::translate(glm::mat4(1.0f), glm::vec3(-3.0f, 0.0f, 0.0f)),
+        "./Texture/lightgold_albedo.png",
+        vDescriptorPool, uniformBuffers, vDescriptorSetLayout);
+    objects[1].loadObject<CameraMatrix>(vPhysicalDevice, vDevice, vCommandPool, sphereObj,
+        glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
+        "./Texture/dark-wood-stain_albedo.png",
+        vDescriptorPool, uniformBuffers, vDescriptorSetLayout);
+    objects[2].loadObject<CameraMatrix>(vPhysicalDevice, vDevice, vCommandPool, sphereObj,
+        glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
+        "./Texture/stylized-cave-wall1_albedo.png",
+        vDescriptorPool, uniformBuffers, vDescriptorSetLayout);
+    objects[3].loadObject<CameraMatrix>(vPhysicalDevice, vDevice, vCommandPool, sphereObj,
+        glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 0.0f)),
+        "./Texture/houndstooth-fabric-weave_albedo.png",
+        vDescriptorPool, uniformBuffers, vDescriptorSetLayout);
 }
+
 
 void Sence::mainLoop() {
     while (!glfwWindowShouldClose(window)) {
@@ -101,17 +98,17 @@ void Sence::mainLoop() {
 
 void Sence::cleanup() {
     vSwapChain.cleanSwapChain(vDevice);
-    texture.destroyTexture(vDevice);
+    for (auto& object : objects)
+    {
+        object.mesh.destroyMesh(vDevice);
+        object.texture.destroyTexture(vDevice);
+    }
     vGraphicsPipeline.destroyGraphicsPipeline(vDevice);
     vRenderPass.destroyRenderPass(vDevice);
     for (auto& uniformBuffer : uniformBuffers)
         uniformBuffer.destroyUniformBuffer(vDevice);
     vDescriptorPool.destroyDescriptorPool(&vDevice);
     vDescriptorSetLayout.destroyDescriptorSetLayout(&vDevice);
-    for (auto& mesh : vMeshes)
-    {
-        mesh.destroyMesh(vDevice);
-    }
     for (auto& semaphore : imageAvailableSemaphores)
         semaphore.destroySemaphore(vDevice);
     for (auto& semaphore : renderFinishedSemaphores)
@@ -167,11 +164,9 @@ void Sence::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageInd
     scissor.extent = vSwapChain.swapChainExtent;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vGraphicsPipeline.pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
-    
-    for (auto& mesh : vMeshes)
+    for (auto& object : objects)
     {
-        drawMesh(commandBuffer, mesh);
+        drawObject(commandBuffer, object);
     }
 
     vkCmdEndRenderPass(commandBuffer);
@@ -181,16 +176,17 @@ void Sence::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageInd
     }
 }
 
-void Sence::drawMesh(const VkCommandBuffer& commandBuffer, const Mesh& mesh) const
+void Sence::drawObject(const VkCommandBuffer& commandBuffer, const Object& object) const
 {
-    VkBuffer vertexBuffers[] = { mesh.vertexBuffer.buffer };
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vGraphicsPipeline.pipelineLayout, 0, 1, &object.descriptorSets[currentFrame], 0, nullptr);
+    VkBuffer vertexBuffers[] = { object.mesh.vertexBuffer.buffer };
     VkDeviceSize offsets[] = { 0 };
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-    vkCmdBindIndexBuffer(commandBuffer, mesh.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+    vkCmdBindIndexBuffer(commandBuffer, object.mesh.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
     PushConstantData pushConstant{};
-    pushConstant.model = mesh.modelMatrix;
+    pushConstant.model = object.mesh.modelMatrix;
     vkCmdPushConstants(commandBuffer, vGraphicsPipeline.pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstantData), &pushConstant);
-    vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh.indexCount), 1, 0, 0, 0);
+    vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object.mesh.indexCount), 1, 0, 0, 0);
 }
 
 void Sence::createSyncObjects() {
@@ -293,42 +289,6 @@ void Sence::updateUniformBuffer(uint32_t currentImage) {
         0.1f, 100.0f);
     cameraUbo.proj[1][1] *= -1;
     uniformBuffers[currentImage].updateUniformBuffer(cameraUbo);
-}
-
-void Sence::updateDescriptorSets() {
-    std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, vDescriptorSetLayout.descriptorSetLayout);
-    descriptorSets = vDescriptorPool.allocateDescriptorSets(&vDevice, layouts.data(), static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT));
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = uniformBuffers[i].vBuffer.buffer;
-        bufferInfo.offset = 0;
-        bufferInfo.range = sizeof(CameraMatrix);
-
-        VkDescriptorImageInfo imageInfo{};
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = texture.image.imageView;
-        imageInfo.sampler = texture.sampler;
-
-        std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
-
-        descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[0].dstSet = descriptorSets[i];
-        descriptorWrites[0].dstBinding = 0;
-        descriptorWrites[0].dstArrayElement = 0;
-        descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrites[0].descriptorCount = 1;
-        descriptorWrites[0].pBufferInfo = &bufferInfo;
-
-        descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[1].dstSet = descriptorSets[i];
-        descriptorWrites[1].dstBinding = 1;
-        descriptorWrites[1].dstArrayElement = 0;
-        descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[1].descriptorCount = 1;
-        descriptorWrites[1].pImageInfo = &imageInfo;
-
-        vkUpdateDescriptorSets(vDevice.device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
-    }
 }
 
 std::vector<VkDescriptorSetLayoutBinding> Sence::createDescriptorSetLayoutBinding() const

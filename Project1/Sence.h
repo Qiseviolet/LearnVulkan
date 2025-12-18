@@ -6,6 +6,7 @@
 #include "Common/Mesh.h"
 #include "Common/Texture.h"
 #include "Camera/CameraFPS.h"
+#include "Common/Object.h"
 #include "VulkanCore/VulkanInstance.h"
 #include "VulkanCore/VulkanSurface.h"
 #include "VulkanCore/VulkanDevice.h"
@@ -39,8 +40,6 @@ private:
     VulkanSurface vSurface;
     VulkanPhysicalDevice vPhysicalDevice;
     VulkanDevice vDevice;
-    std::vector<Mesh> vMeshes;
-    Texture texture;
     InputManager* inputManager;
     CameraBase* camera;
     VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
@@ -68,9 +67,6 @@ private:
         auto app = reinterpret_cast<Sence*>(glfwGetWindowUserPointer(window));
         app->framebufferResized = true;
     }
-
-    std::vector<VkDescriptorSet> descriptorSets;
-    void updateDescriptorSets();
     
     std::vector<VkCommandBuffer> commandBuffers;
     VulkanCommandPool vCommandPool;
@@ -84,10 +80,9 @@ private:
     uint32_t currentFrame = 0;
     void drawFrame();
 
-    void drawMesh(const VkCommandBuffer& commandBuffer, const Mesh& mesh) const;
-
-    void loadModel();
-    
+    std::vector<Object> objects;
+    void loadObjects();
+    void drawObject(const VkCommandBuffer& commandBuffer, const Object& object) const;
 public:
     void initWindow();
     void initVulkan();
