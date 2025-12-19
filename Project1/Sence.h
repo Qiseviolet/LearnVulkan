@@ -29,7 +29,7 @@ const std::string TEXTURE_PATH = "./Texture/wood_diff.jpg";
 const std::string VERTEX_SHADER_PATH = "./Shader/vert.spv";
 const std::string FRAGMENT_SHADER_PATH = "./Shader/frag.spv";
 
-struct PushConstantData {
+struct ObjectModelMatrix {
     glm::mat4 model;
 };
 
@@ -57,10 +57,12 @@ private:
     
     VulkanDescriptorSetLayout vDescriptorSetLayout;
     std::vector<VkDescriptorSetLayoutBinding> createDescriptorSetLayoutBinding() const;
+    void createLight();
+    std::vector<VulkanUniformBuffer> cameraUniformBuffers;
+    std::vector<VulkanUniformBuffer> lightUniformBuffers;
     
-    std::vector<VulkanUniformBuffer> uniformBuffers;
     void createUniformBuffers();
-    void updateUniformBuffer(uint32_t currentImage);
+    void updateCameraUniformBuffer(uint32_t currentImage);
 
     bool framebufferResized = false;
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {

@@ -51,6 +51,14 @@ public:
 		return Zoom;
 	}
 
+	glm::vec3 GetViewDirection() const {
+		return Front;
+	}
+
+	glm::vec3 GetPosition() const {
+		return Position;
+	}
+
 	virtual void ProcessKeyboard(int direction, float deltaTime) {};
 	virtual void ProcessMouseMovement(float xoffset, float yoffset, bool constrainPitch = true) {};
 	virtual void ProcessMouseScroll(float yoffset) {};

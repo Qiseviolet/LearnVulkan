@@ -3,6 +3,8 @@
 #include <vector>
 #include "Mesh.h"
 #include "Texture.h"
+#include "../Camera/CameraData.h"
+#include "../Light/DirectionalLight.h"
 #include "../VulkanCore/VulkanDescriptorSetLayout.h"
 #include "../VulkanCore/VulkanUniformBuffer.h"
 
@@ -13,14 +15,14 @@ public:
     Mesh mesh;
     Texture texture;
 
-    template <typename T>
     void loadObject(const VulkanPhysicalDevice& physicalDevice, const VulkanDevice& device, const VulkanCommandPool& commandPool,
         const std::string& modelPath, const glm::mat4& modelMatrix, const std::string& texturePath,
-        const VulkanDescriptorPool& descriptorPool, const std::vector<VulkanUniformBuffer>& uniformBuffers, const VulkanDescriptorSetLayout& descriptorSetLayout)
+        const VulkanDescriptorPool& descriptorPool, const VulkanDescriptorSetLayout& descriptorSetLayout,
+        const std::vector<VulkanUniformBuffer>& cameraUniformBuffers,  const std::vector<VulkanUniformBuffer>& lightUniformBuffers)
     {
         loadMesh(physicalDevice, device, commandPool, modelPath, modelMatrix);
         loadTexture(physicalDevice, device, commandPool, texturePath);
-        updateDescriptorSet<T>(device, descriptorPool, uniformBuffers, descriptorSetLayout);
+        updateDescriptorSet(device, descriptorPool, cameraUniformBuffers, lightUniformBuffers, descriptorSetLayout);
     }
     
 private:
@@ -41,26 +43,21 @@ private:
         texture.createTextureSampler(physicalDevice, device);
     }
 
-    template <typename T>
     void updateDescriptorSet(const VulkanDevice& device, const VulkanDescriptorPool& descriptorPool,
-        const std::vector<VulkanUniformBuffer>& uniformBuffers, VulkanDescriptorSetLayout descriptorSetLayout)
+        const std::vector<VulkanUniformBuffer>& cameraUniform, const std::vector<VulkanUniformBuffer>& lightUniform,
+        VulkanDescriptorSetLayout descriptorSetLayout)
     {
-        size_t setCount = uniformBuffers.size();
+        size_t setCount = cameraUniform.size();
         std::vector<VkDescriptorSetLayout> layouts(setCount, descriptorSetLayout.descriptorSetLayout);
         descriptorSets = descriptorPool.allocateDescriptorSets(&device, layouts.data(), static_cast<uint32_t>(setCount));
         for (size_t i = 0; i < descriptorSets.size(); ++i)
         {
-            VkDescriptorBufferInfo bufferInfo{};
-            bufferInfo.buffer = uniformBuffers[i].vBuffer.buffer;
-            bufferInfo.offset = 0;
-            bufferInfo.range = sizeof(T);
-
-            VkDescriptorImageInfo imageInfo{};
-            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo.imageView = texture.image.imageView;
-            imageInfo.sampler = texture.sampler;
-
-            std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+            std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
+            
+            VkDescriptorBufferInfo cameraBufferInfo{};
+            cameraBufferInfo.buffer = cameraUniform[i].vBuffer.buffer;
+            cameraBufferInfo.offset = 0;
+            cameraBufferInfo.range = sizeof(CameraData);
 
             descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descriptorWrites[0].dstSet = descriptorSets[i];
@@ -68,8 +65,13 @@ private:
             descriptorWrites[0].dstArrayElement = 0;
             descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
             descriptorWrites[0].descriptorCount = 1;
-            descriptorWrites[0].pBufferInfo = &bufferInfo;
+            descriptorWrites[0].pBufferInfo = &cameraBufferInfo;
 
+            VkDescriptorImageInfo imageInfo{};
+            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo.imageView = texture.image.imageView;
+            imageInfo.sampler = texture.sampler;
+            
             descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descriptorWrites[1].dstSet = descriptorSets[i];
             descriptorWrites[1].dstBinding = 1;
@@ -77,6 +79,20 @@ private:
             descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             descriptorWrites[1].descriptorCount = 1;
             descriptorWrites[1].pImageInfo = &imageInfo;
+
+            VkDescriptorBufferInfo lightBufferInfo{};
+            lightBufferInfo.buffer = lightUniform[i].vBuffer.buffer;
+            lightBufferInfo.offset = 0;
+            lightBufferInfo.range = sizeof(DirectionalLight);
+            
+            descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[2].dstSet = descriptorSets[i];
+            descriptorWrites[2].dstBinding = 2;
+            descriptorWrites[2].dstArrayElement = 0;
+            descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            descriptorWrites[2].descriptorCount = 1;
+            descriptorWrites[2].pBufferInfo = &lightBufferInfo;
+            
             vkUpdateDescriptorSets(device.device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
         }
     }

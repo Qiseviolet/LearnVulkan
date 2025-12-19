@@ -1,5 +1,6 @@
 #include "Sence.h"
-#include "Camera/CameraMatrix.h"
+#include "Camera/CameraData.h"
+#include "Light/DirectionalLight.h"
 
 void Sence::initWindow() {
     glfwInit();
@@ -53,7 +54,7 @@ void Sence::initVulkan() {
     vCommandPool.createCommandPool(vPhysicalDevice, vDevice, vSurface);
     
     createUniformBuffers();
-
+    createLight();
     std::vector<VkDescriptorPoolSize> poolSizes = loadDescriptorPoolSizes();
     vDescriptorPool.createDescriptorPool(&vDevice,static_cast<uint32_t>(poolSizes.size()), poolSizes.data(), 10);
     loadObjects();
@@ -61,26 +62,40 @@ void Sence::initVulkan() {
     createSyncObjects();
 }
 
+void Sence::createLight()
+{
+    DirectionalLight directionalLight;
+    directionalLight.direction = glm::vec3(1.0f, 1.0f, 1.0f);
+    directionalLight.ambient = glm::vec3(0.1f, 0.1f, 0.1f);
+    directionalLight.diffuse = glm::vec3(1.0f, 1.0f, 1.0f);
+    directionalLight.specular = glm::vec3(1.0f, 1.0f, 1.0f);
+    directionalLight.shininess = 32.0;
+    for (size_t i = 0; i < lightUniformBuffers.size(); ++i)
+    {
+        lightUniformBuffers[i].updateUniformBuffer(directionalLight);
+    }
+}
+
 void Sence::loadObjects()
 {
     static const std::string sphereObj = "./Model/sphere.obj";
     objects.resize(4);
-    objects[0].loadObject<CameraMatrix>(vPhysicalDevice, vDevice, vCommandPool, sphereObj,
+    objects[0].loadObject(vPhysicalDevice, vDevice, vCommandPool, sphereObj,
         glm::translate(glm::mat4(1.0f), glm::vec3(-3.0f, 0.0f, 0.0f)),
-        "./Texture/lightgold_albedo.png",
-        vDescriptorPool, uniformBuffers, vDescriptorSetLayout);
-    objects[1].loadObject<CameraMatrix>(vPhysicalDevice, vDevice, vCommandPool, sphereObj,
+        "./Texture/lightgold_albedo.png", vDescriptorPool, vDescriptorSetLayout,
+        cameraUniformBuffers, lightUniformBuffers);
+    objects[1].loadObject(vPhysicalDevice, vDevice, vCommandPool, sphereObj,
         glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
-        "./Texture/dark-wood-stain_albedo.png",
-        vDescriptorPool, uniformBuffers, vDescriptorSetLayout);
-    objects[2].loadObject<CameraMatrix>(vPhysicalDevice, vDevice, vCommandPool, sphereObj,
+        "./Texture/dark-wood-stain_albedo.png", vDescriptorPool, vDescriptorSetLayout,
+        cameraUniformBuffers, lightUniformBuffers);
+    objects[2].loadObject(vPhysicalDevice, vDevice, vCommandPool, sphereObj,
         glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
-        "./Texture/stylized-cave-wall1_albedo.png",
-        vDescriptorPool, uniformBuffers, vDescriptorSetLayout);
-    objects[3].loadObject<CameraMatrix>(vPhysicalDevice, vDevice, vCommandPool, sphereObj,
+        "./Texture/stylized-cave-wall1_albedo.png", vDescriptorPool, vDescriptorSetLayout,
+        cameraUniformBuffers, lightUniformBuffers);
+    objects[3].loadObject(vPhysicalDevice, vDevice, vCommandPool, sphereObj,
         glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 0.0f)),
-        "./Texture/houndstooth-fabric-weave_albedo.png",
-        vDescriptorPool, uniformBuffers, vDescriptorSetLayout);
+        "./Texture/houndstooth-fabric-weave_albedo.png", vDescriptorPool, vDescriptorSetLayout,
+        cameraUniformBuffers, lightUniformBuffers);
 }
 
 
@@ -105,7 +120,9 @@ void Sence::cleanup() {
     }
     vGraphicsPipeline.destroyGraphicsPipeline(vDevice);
     vRenderPass.destroyRenderPass(vDevice);
-    for (auto& uniformBuffer : uniformBuffers)
+    for (auto& uniformBuffer : cameraUniformBuffers)
+        uniformBuffer.destroyUniformBuffer(vDevice);
+    for (auto& uniformBuffer : lightUniformBuffers)
         uniformBuffer.destroyUniformBuffer(vDevice);
     vDescriptorPool.destroyDescriptorPool(&vDevice);
     vDescriptorSetLayout.destroyDescriptorSetLayout(&vDevice);
@@ -183,9 +200,9 @@ void Sence::drawObject(const VkCommandBuffer& commandBuffer, const Object& objec
     VkDeviceSize offsets[] = { 0 };
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
     vkCmdBindIndexBuffer(commandBuffer, object.mesh.indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-    PushConstantData pushConstant{};
-    pushConstant.model = object.mesh.modelMatrix;
-    vkCmdPushConstants(commandBuffer, vGraphicsPipeline.pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstantData), &pushConstant);
+    ObjectModelMatrix objectModel{};
+    objectModel.model = object.mesh.modelMatrix;
+    vkCmdPushConstants(commandBuffer, vGraphicsPipeline.pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ObjectModelMatrix), &objectModel);
     vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(object.mesh.indexCount), 1, 0, 0, 0);
 }
 
@@ -216,7 +233,7 @@ void Sence::drawFrame() {
         throw std::runtime_error("failed to acquire swap chain image!");
     }
 
-    updateUniformBuffer(currentFrame);
+    updateCameraUniformBuffer(currentFrame);
 
     vkResetFences(vDevice.device, 1, &inFlightFences[currentFrame].fence);
 
@@ -269,43 +286,57 @@ void Sence::drawFrame() {
 }
 
 void Sence::createUniformBuffers() {
-    VkDeviceSize bufferSize = sizeof(CameraMatrix);
-    uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+    VkDeviceSize bufferSize = sizeof(CameraData);
+    cameraUniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        uniformBuffers[i].createUniformBuffer(vPhysicalDevice, vDevice, bufferSize,
+        cameraUniformBuffers[i].createUniformBuffer(vPhysicalDevice, vDevice, bufferSize,
+            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    }
+
+    VkDeviceSize lightBufferSize = sizeof(DirectionalLight);
+    lightUniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        lightUniformBuffers[i].createUniformBuffer(vPhysicalDevice, vDevice, lightBufferSize,
             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     }
 }
 
-void Sence::updateUniformBuffer(uint32_t currentImage) {
+void Sence::updateCameraUniformBuffer(uint32_t currentImage) {
     static auto startTime = std::chrono::high_resolution_clock::now();
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-    CameraMatrix cameraUbo{};
+    CameraData cameraUbo{};
+    cameraUbo.position = camera->GetPosition();
     cameraUbo.view = camera->GetViewMatrix();
     cameraUbo.proj = glm::perspective(glm::radians(camera->GetFovy()),
         static_cast<float>(vSwapChain.swapChainExtent.width) / static_cast<float>(vSwapChain.swapChainExtent.height),
         0.1f, 100.0f);
     cameraUbo.proj[1][1] *= -1;
-    uniformBuffers[currentImage].updateUniformBuffer(cameraUbo);
+    cameraUniformBuffers[currentImage].updateUniformBuffer(cameraUbo);
 }
 
 std::vector<VkDescriptorSetLayoutBinding> Sence::createDescriptorSetLayoutBinding() const
 {
-    VkDescriptorSetLayoutBinding uboLayoutBinding{};
-    uboLayoutBinding.binding = 0;
-    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    uboLayoutBinding.descriptorCount = 1;
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    uboLayoutBinding.pImmutableSamplers = nullptr;
+    VkDescriptorSetLayoutBinding cameraUboLayoutBinding{};
+    cameraUboLayoutBinding.binding = 0;
+    cameraUboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    cameraUboLayoutBinding.descriptorCount = 1;
+    cameraUboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    cameraUboLayoutBinding.pImmutableSamplers = nullptr;
     VkDescriptorSetLayoutBinding samplerLayoutBinding{};
     samplerLayoutBinding.binding = 1;
     samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     samplerLayoutBinding.descriptorCount = 1;
     samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     samplerLayoutBinding.pImmutableSamplers = nullptr;
-    return { uboLayoutBinding, samplerLayoutBinding };
+    VkDescriptorSetLayoutBinding lightUboLayout{};
+    lightUboLayout.binding = 2;
+    lightUboLayout.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    lightUboLayout.descriptorCount = 1;
+    lightUboLayout.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    lightUboLayout.pImmutableSamplers = nullptr;
+    return { cameraUboLayoutBinding, samplerLayoutBinding, lightUboLayout };
 }
 
 VertexInputDescription Sence::loadVertexInputDescription() const
