@@ -6,19 +6,19 @@ echo   Vulkan Shader Compiler
 echo =============================
 echo.
 
-REM 1. 获取当前 bat 文件所在目录
+REM Get current bat file directory
 set BASE_DIR=%~dp0
 echo [INFO] BAT File Directory:
 echo        %BASE_DIR%
 echo.
 
-REM 2. 设置 glslc 路径（相对于 BASE_DIR）
+REM Set glslc path relative to BASE_DIR
 set GLSLC=%BASE_DIR%..\Libraries\Vulkan\Bin\glslc.exe
 echo [INFO] GLSLC Full Path:
 echo        %GLSLC%
 echo.
 
-REM 3. Shader 源文件路径
+REM Shader source file directory
 set SHADER_DIR=%BASE_DIR%..\Shader\
 echo [INFO] Shader Directory:
 echo        %SHADER_DIR%
@@ -26,16 +26,50 @@ echo.
 
 echo -----------------------------
 echo Compiling Vertex Shader...
-echo Command: "%GLSLC%" "%SHADER_DIR%shader.vert" -o "%SHADER_DIR%vert.spv"
+echo Command: "%GLSLC%" -fshader-stage=vertex "%SHADER_DIR%shader.vert" -o "%SHADER_DIR%vert.spv"
 echo -----------------------------
-"%GLSLC%" "%SHADER_DIR%shader.vert" -o "%SHADER_DIR%vert.spv"
+"%GLSLC%" -fshader-stage=vertex "%SHADER_DIR%shader.vert" -o "%SHADER_DIR%vert.spv"
+if errorlevel 1 (
+    echo ERROR: Failed to compile vertex shader!
+    pause
+    exit /b 1
+)
 
 echo.
 echo -----------------------------
 echo Compiling Fragment Shader...
-echo Command: "%GLSLC%" "%SHADER_DIR%shader.frag" -o "%SHADER_DIR%frag.spv"
+echo Command: "%GLSLC%" -fshader-stage=fragment "%SHADER_DIR%shader.frag" -o "%SHADER_DIR%frag.spv"
 echo -----------------------------
-"%GLSLC%" "%SHADER_DIR%shader.frag" -o "%SHADER_DIR%frag.spv"
+"%GLSLC%" -fshader-stage=fragment "%SHADER_DIR%shader.frag" -o "%SHADER_DIR%frag.spv"
+if errorlevel 1 (
+    echo ERROR: Failed to compile fragment shader!
+    pause
+    exit /b 1
+)
+
+echo.
+echo -----------------------------
+echo Compiling Shadow Vertex Shader...
+echo Command: "%GLSLC%" -fshader-stage=vertex "%SHADER_DIR%shadow.vert" -o "%SHADER_DIR%shadow_vert.spv"
+echo -----------------------------
+"%GLSLC%" -fshader-stage=vertex "%SHADER_DIR%shadow.vert" -o "%SHADER_DIR%shadow_vert.spv"
+if errorlevel 1 (
+    echo ERROR: Failed to compile shadow vertex shader!
+    pause
+    exit /b 1
+)
+
+echo.
+echo -----------------------------
+echo Compiling Shadow Fragment Shader...
+echo Command: "%GLSLC%" -fshader-stage=fragment "%SHADER_DIR%shadow.frag" -o "%SHADER_DIR%shadow_frag.spv"
+echo -----------------------------
+"%GLSLC%" -fshader-stage=fragment "%SHADER_DIR%shadow.frag" -o "%SHADER_DIR%shadow_frag.spv"
+if errorlevel 1 (
+    echo ERROR: Failed to compile shadow fragment shader!
+    pause
+    exit /b 1
+)
 
 echo.
 echo =============================

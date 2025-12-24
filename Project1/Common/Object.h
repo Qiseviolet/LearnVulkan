@@ -5,6 +5,7 @@
 #include "Texture.h"
 #include "../Camera/CameraData.h"
 #include "../Light/DirectionalLight.h"
+#include "../Light/LightSpaceMatrix.h"
 #include "../VulkanCore/VulkanDescriptorSetLayout.h"
 #include "../VulkanCore/VulkanUniformBuffer.h"
 
@@ -18,11 +19,12 @@ public:
     void loadObject(const VulkanPhysicalDevice& physicalDevice, const VulkanDevice& device, const VulkanCommandPool& commandPool,
         const std::string& modelPath, const glm::mat4& modelMatrix, const std::string& texturePath,
         const VulkanDescriptorPool& descriptorPool, const VulkanDescriptorSetLayout& descriptorSetLayout,
-        const std::vector<VulkanUniformBuffer>& cameraUniformBuffers,  const std::vector<VulkanUniformBuffer>& lightUniformBuffers)
+        const std::vector<VulkanUniformBuffer>& cameraUniformBuffers,  const std::vector<VulkanUniformBuffer>& lightUniformBuffers,
+        const std::vector<VulkanUniformBuffer>& lightSpaceUniformBuffers, VkImageView shadowMapImageView, VkSampler shadowMapSampler)
     {
         loadMesh(physicalDevice, device, commandPool, modelPath, modelMatrix);
         loadTexture(physicalDevice, device, commandPool, texturePath);
-        updateDescriptorSet(device, descriptorPool, cameraUniformBuffers, lightUniformBuffers, descriptorSetLayout);
+        updateDescriptorSet(device, descriptorPool, cameraUniformBuffers, lightUniformBuffers, lightSpaceUniformBuffers, shadowMapImageView, shadowMapSampler, descriptorSetLayout);
     }
     
 private:
@@ -45,6 +47,7 @@ private:
 
     void updateDescriptorSet(const VulkanDevice& device, const VulkanDescriptorPool& descriptorPool,
         const std::vector<VulkanUniformBuffer>& cameraUniform, const std::vector<VulkanUniformBuffer>& lightUniform,
+        const std::vector<VulkanUniformBuffer>& lightSpaceUniform, VkImageView shadowMapImageView, VkSampler shadowMapSampler,
         VulkanDescriptorSetLayout descriptorSetLayout)
     {
         size_t setCount = cameraUniform.size();
@@ -52,7 +55,7 @@ private:
         descriptorSets = descriptorPool.allocateDescriptorSets(&device, layouts.data(), static_cast<uint32_t>(setCount));
         for (size_t i = 0; i < descriptorSets.size(); ++i)
         {
-            std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
+            std::array<VkWriteDescriptorSet, 5> descriptorWrites{};
             
             VkDescriptorBufferInfo cameraBufferInfo{};
             cameraBufferInfo.buffer = cameraUniform[i].vBuffer.buffer;
@@ -92,6 +95,32 @@ private:
             descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
             descriptorWrites[2].descriptorCount = 1;
             descriptorWrites[2].pBufferInfo = &lightBufferInfo;
+
+            VkDescriptorBufferInfo lightSpaceBufferInfo{};
+            lightSpaceBufferInfo.buffer = lightSpaceUniform[i].vBuffer.buffer;
+            lightSpaceBufferInfo.offset = 0;
+            lightSpaceBufferInfo.range = sizeof(struct LightSpaceMatrix);
+            
+            descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[3].dstSet = descriptorSets[i];
+            descriptorWrites[3].dstBinding = 3;
+            descriptorWrites[3].dstArrayElement = 0;
+            descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            descriptorWrites[3].descriptorCount = 1;
+            descriptorWrites[3].pBufferInfo = &lightSpaceBufferInfo;
+
+            VkDescriptorImageInfo shadowMapInfo{};
+            shadowMapInfo.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+            shadowMapInfo.imageView = shadowMapImageView;
+            shadowMapInfo.sampler = shadowMapSampler;
+            
+            descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[4].dstSet = descriptorSets[i];
+            descriptorWrites[4].dstBinding = 4;
+            descriptorWrites[4].dstArrayElement = 0;
+            descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptorWrites[4].descriptorCount = 1;
+            descriptorWrites[4].pImageInfo = &shadowMapInfo;
             
             vkUpdateDescriptorSets(device.device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
         }
