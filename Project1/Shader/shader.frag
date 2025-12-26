@@ -28,14 +28,13 @@ layout(location = 0) out vec4 outColor;
 float ShadowCalculation(vec4 fragPosLightSpace)
 {
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-    projCoords = projCoords * 0.5 + 0.5;
-    if(projCoords.z > 1.0 || projCoords.x < 0.0 || projCoords.x > 1.0 || projCoords.y < 0.0 || projCoords.y > 1.0)
+    vec3 texCoords = projCoords * 0.5 + 0.5;
+    if(texCoords.x < 0.0 || texCoords.x > 1.0 || texCoords.y < 0.0 || texCoords.y > 1.0)
         return 0.0;
-    float closestDepth = texture(shadowMap, projCoords.xy).r;
-    float currentDepth = projCoords.z;
+    float closestDepth = texture(shadowMap, texCoords.xy).r;
     float bias = 0.005;
-    float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
-    return closestDepth;
+    float shadow = projCoords.z - bias> closestDepth ? 1.0 : 0.0;
+    return shadow;
 }
 
 void main() {
@@ -50,11 +49,8 @@ void main() {
     vec3 ambient = lightUBO.ambient;
     
     float shadow = ShadowCalculation(fragLightSpacePos);
-    vec3 lighting = ambient + (1.0 - shadow) * (diffuse + specular);
-    
     vec4 texColor = texture(texSampler, fragTexCoord);
-    //outColor = vec4(texColor.rgb * lighting, texColor.a);
-    //outColor = vec4(texColor.rgb, texColor.a);
-    
-    outColor = vec4(shadow, 0.0, 0.0, 1.0);
+    vec3 lighting = ambient + (1.0 - shadow) * (diffuse + specular);
+    outColor = vec4(texColor.rgb * lighting, texColor.a);
+    //outColor = vec4(shadow, shadow, shadow, 1.0);
 }

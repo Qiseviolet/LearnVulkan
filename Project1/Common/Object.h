@@ -99,7 +99,7 @@ private:
             VkDescriptorBufferInfo lightSpaceBufferInfo{};
             lightSpaceBufferInfo.buffer = lightSpaceUniform[i].vBuffer.buffer;
             lightSpaceBufferInfo.offset = 0;
-            lightSpaceBufferInfo.range = sizeof(struct LightSpaceMatrix);
+            lightSpaceBufferInfo.range = sizeof(LightSpaceMatrix);
             
             descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descriptorWrites[3].dstSet = descriptorSets[i];

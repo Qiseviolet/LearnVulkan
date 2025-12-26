@@ -101,7 +101,7 @@ void Sence::createLight()
     DirectionalLight directionalLight;
     directionalLight.direction = glm::vec3(1.0f, 1.0f, 1.0f);
     directionalLight.ambient = glm::vec3(0.1f, 0.1f, 0.1f);
-    directionalLight.diffuse = glm::vec3(1.0f, 1.0f, 1.0f);
+    directionalLight.diffuse = glm::vec3(0.2f, 0.2f, 0.2f);
     directionalLight.specular = glm::vec3(1.0f, 1.0f, 1.0f);
     directionalLight.shininess = 32.0;
     for (size_t i = 0; i < lightUniformBuffers.size(); ++i)
@@ -113,9 +113,9 @@ void Sence::createLight()
 void Sence::loadObjects()
 {
     static const std::string sphereObj = "./Model/sphere.obj";
-    objects.resize(4);
+    objects.resize(5);
     objects[0].loadObject(vPhysicalDevice, vDevice, vCommandPool, sphereObj,
-        glm::translate(glm::mat4(1.0f), glm::vec3(-3.0f, 0.0f, 0.0f)),
+        (glm::translate(glm::mat4(1.0f), glm::vec3(-3.0f, 0.0f, 0.0f))),
         "./Texture/lightgold_albedo.png", vDescriptorPool, vDescriptorSetLayout,
         cameraUniformBuffers, lightUniformBuffers, lightSpaceUniformBuffers, shadowMapImage.imageView, shadowMapSampler);
     objects[1].loadObject(vPhysicalDevice, vDevice, vCommandPool, sphereObj,
@@ -132,10 +132,10 @@ void Sence::loadObjects()
         cameraUniformBuffers, lightUniformBuffers, lightSpaceUniformBuffers, shadowMapImage.imageView, shadowMapSampler);
     static const std::string planeObj = "./Model/cube.obj";
     glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -2.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(50.0f, 50.0f, 0.1f));
-    // objects[4].loadObject(vPhysicalDevice, vDevice, vCommandPool, planeObj,
-    //     modelMatrix,
-    //     "./Texture/wood_diff.jpg", vDescriptorPool, vDescriptorSetLayout,
-    //     cameraUniformBuffers, lightUniformBuffers, lightSpaceUniformBuffers, shadowMapImage.imageView, shadowMapSampler); 
+    objects[4].loadObject(vPhysicalDevice, vDevice, vCommandPool, planeObj,
+        modelMatrix,
+        "./Texture/wood_diff.jpg", vDescriptorPool, vDescriptorSetLayout,
+        cameraUniformBuffers, lightUniformBuffers, lightSpaceUniformBuffers, shadowMapImage.imageView, shadowMapSampler); 
 }
 
 
@@ -283,8 +283,8 @@ void Sence::drawFrame() {
         throw std::runtime_error("failed to acquire swap chain image!");
     }
 
-    updateCameraUniformBuffer(currentFrame);
     updateLightSpaceMatrix(currentFrame);
+    updateCameraUniformBuffer(currentFrame);
 
     vkResetFences(vDevice.device, 1, &inFlightFences[currentFrame].fence);
     recordShadowCommandBuffer(shadowCommandBuffers[currentFrame], currentFrame);
@@ -479,8 +479,8 @@ void Sence::createShadowRenderPass()
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
     dependency.dstSubpass = 0;
     dependency.srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-    dependency.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
     dependency.dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    dependency.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
     dependency.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
     dependency.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
@@ -488,8 +488,8 @@ void Sence::createShadowRenderPass()
     dependency2.srcSubpass = 0;
     dependency2.dstSubpass = VK_SUBPASS_EXTERNAL;
     dependency2.srcStageMask = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-    dependency2.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
     dependency2.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    dependency2.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
     dependency2.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
     dependency2.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
@@ -565,7 +565,7 @@ void Sence::createShadowMap()
     samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
     samplerInfo.unnormalizedCoordinates = VK_FALSE;
     samplerInfo.compareEnable = VK_TRUE;
-    samplerInfo.compareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
     samplerInfo.minLod = 0.0f;
     samplerInfo.maxLod = 0.0f;
@@ -600,19 +600,19 @@ void Sence::createShadowPipeline()
 
 void Sence::updateLightSpaceMatrix(uint32_t currentImage)
 {
-    // 计算光源的视图和投影矩阵
-    glm::vec3 lightDir = glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f));
-    glm::vec3 lightPos = glm::vec3(0.0f, 0.0f, 10.0f);
-    glm::vec3 target = glm::vec3(0.0f, 0.0f, 0.0f);
-    glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
+    // // 计算光源的视图和投影矩阵
+    // glm::vec3 lightDir = glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f));
+    // glm::vec3 lightPos = glm::vec3(0.0f, 0.0f, 10.0f);
+    // glm::vec3 target = glm::vec3(0.0f, 0.0f, 0.0f);
+    // glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
     
-    glm::mat4 lightView = glm::lookAt(lightPos, target, up);
-    glm::mat4 lightProj = glm::ortho(-20.0f, 20.0f, -20.0f, 20.0f, 1.0f, 100.0f);
-    lightProj[1][1] *= -1; // 翻转Y轴以匹配Vulkan坐标系
+    // glm::mat4 lightView = glm::lookAt(lightPos, target, up);
+    glm::mat4 lightProj = glm::orthoZO(-10.0f, 10.0f, -10.0f, 10.0f, 0.0f, 100.0f);
 
     LightSpaceMatrix lightSpace{};
-    lightSpace.lightView = lightView;
+    lightSpace.lightView = camera->GetViewMatrix();
     lightSpace.lightProj = lightProj;
+    //ightSpace.lightProj[1][1] *= -1;
     
     lightSpaceUniformBuffers[currentImage].updateUniformBuffer(lightSpace);
 }
@@ -676,6 +676,30 @@ void Sence::recordShadowCommandBuffer(VkCommandBuffer commandBuffer, uint32_t cu
     }
 
     vkCmdEndRenderPass(commandBuffer);
+
+    VkImageMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    barrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.image = shadowMapImage.image;
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+    barrier.subresourceRange.baseMipLevel = 0;
+    barrier.subresourceRange.levelCount = 1;
+    barrier.subresourceRange.baseArrayLayer = 0;
+    barrier.subresourceRange.layerCount = 1;
+    barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    
+    vkCmdPipelineBarrier(commandBuffer,
+        VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrier);
+
 
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
         throw std::runtime_error("failed to record shadow command buffer!");
