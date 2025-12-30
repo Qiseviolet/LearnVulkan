@@ -100,8 +100,8 @@ void Sence::createLight()
 {
     DirectionalLight directionalLight;
     directionalLight.direction = glm::vec3(1.0f, 1.0f, 1.0f);
-    directionalLight.ambient = glm::vec3(0.1f, 0.1f, 0.1f);
-    directionalLight.diffuse = glm::vec3(0.2f, 0.2f, 0.2f);
+    directionalLight.ambient = glm::vec3(0.2f, 0.2f, 0.2f);
+    directionalLight.diffuse = glm::vec3(1.0f, 1.0f, 1.0f);
     directionalLight.specular = glm::vec3(1.0f, 1.0f, 1.0f);
     directionalLight.shininess = 32.0;
     for (size_t i = 0; i < lightUniformBuffers.size(); ++i)
@@ -583,7 +583,7 @@ void Sence::createShadowPipeline()
     GraphicsPipelineConfig pipelineConfig;
     pipelineConfig.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     pipelineConfig.polygonMode = VK_POLYGON_MODE_FILL;
-    pipelineConfig.cullMode = VK_CULL_MODE_BACK_BIT;
+    pipelineConfig.cullMode = VK_CULL_MODE_FRONT_BIT;
     pipelineConfig.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     pipelineConfig.depthTest = VK_TRUE;
     pipelineConfig.depthWrite = VK_TRUE;
@@ -600,20 +600,11 @@ void Sence::createShadowPipeline()
 
 void Sence::updateLightSpaceMatrix(uint32_t currentImage)
 {
-    // // 计算光源的视图和投影矩阵
-    // glm::vec3 lightDir = glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f));
-    // glm::vec3 lightPos = glm::vec3(0.0f, 0.0f, 10.0f);
-    // glm::vec3 target = glm::vec3(0.0f, 0.0f, 0.0f);
-    // glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-    
-    // glm::mat4 lightView = glm::lookAt(lightPos, target, up);
-    glm::mat4 lightProj = glm::orthoZO(-10.0f, 10.0f, -10.0f, 10.0f, 0.0f, 100.0f);
-
+    glm::mat4 lightProj = glm::orthoZO(-50.0f, 50.0f, -50.0f, 50.0f, 0.0f, 100.0f);
     LightSpaceMatrix lightSpace{};
     lightSpace.lightView = camera->GetViewMatrix();
     lightSpace.lightProj = lightProj;
-    //ightSpace.lightProj[1][1] *= -1;
-    
+    lightSpace.lightProj[1][1] *= -1;
     lightSpaceUniformBuffers[currentImage].updateUniformBuffer(lightSpace);
 }
 
