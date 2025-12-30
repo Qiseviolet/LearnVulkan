@@ -9,6 +9,10 @@
 #include "../VulkanCore/VulkanDescriptorSetLayout.h"
 #include "../VulkanCore/VulkanUniformBuffer.h"
 
+struct ObjectModelMatrix {
+    glm::mat4 model;
+};
+
 class Object
 {
 public:

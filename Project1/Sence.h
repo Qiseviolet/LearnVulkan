@@ -8,6 +8,7 @@
 #include "Common/Texture.h"
 #include "Camera/CameraFPS.h"
 #include "Common/Object.h"
+#include "Common/Shadow.h"
 #include "VulkanCore/VulkanInstance.h"
 #include "VulkanCore/VulkanSurface.h"
 #include "VulkanCore/VulkanDevice.h"
@@ -20,7 +21,6 @@
 #include "VulkanCore/VulkanRenderPass.h"
 #include "VulkanCore/VulkanSemaphore.h"
 #include "VulkanCore/VulkanSwapChain.h"
-#include "VulkanCore/VulkanImage.h"
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
@@ -30,13 +30,8 @@ const int MAX_FRAMES_IN_FLIGHT = 2;
 const std::string TEXTURE_PATH = "./Texture/wood_diff.jpg";
 const std::string VERTEX_SHADER_PATH = "./Shader/vert.spv";
 const std::string FRAGMENT_SHADER_PATH = "./Shader/frag.spv";
-const std::string SHADOW_VERTEX_SHADER_PATH = "./Shader/shadow_vert.spv";
-const std::string SHADOW_FRAGMENT_SHADER_PATH = "./Shader/shadow_frag.spv";
-const uint32_t SHADOW_MAP_SIZE = 2048;
 
-struct ObjectModelMatrix {
-    glm::mat4 model;
-};
+
 
 class Sence {
 private:
@@ -67,22 +62,6 @@ private:
     std::vector<VulkanUniformBuffer> lightUniformBuffers;
     std::vector<VulkanUniformBuffer> lightSpaceUniformBuffers;
     
-    // 阴影相关资源
-    VulkanRenderPass shadowRenderPass;
-    VulkanGraphicsPipeline shadowGraphicsPipeline;
-    VulkanDescriptorSetLayout shadowDescriptorSetLayout;
-    VulkanImage shadowMapImage;
-    VkFramebuffer shadowMapFramebuffer;
-    VkSampler shadowMapSampler;
-    std::vector<VkDescriptorSet> shadowDescriptorSets;
-    std::vector<VkCommandBuffer> shadowCommandBuffers;
-    void createShadowResources();
-    void createShadowRenderPass();
-    void createShadowPipeline();
-    void createShadowMap();
-    void updateLightSpaceMatrix(uint32_t currentImage);
-    void recordShadowCommandBuffer(VkCommandBuffer commandBuffer, uint32_t currentFrame) const;
-    
     void createUniformBuffers();
     void updateCameraUniformBuffer(uint32_t currentImage);
 
@@ -107,6 +86,8 @@ private:
     std::vector<Object> objects;
     void loadObjects();
     void drawObject(const VkCommandBuffer& commandBuffer, const Object& object) const;
+
+    Shadow shadow;
 public:
     void initWindow();
     void initVulkan();
