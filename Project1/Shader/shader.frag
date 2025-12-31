@@ -16,12 +16,18 @@ layout(binding = 2) uniform lightBufferObject {
 } lightUBO;
 
 layout(binding = 4) uniform sampler2D shadowMap;
+layout(binding = 5) uniform sampler2D normalMap;
 
 layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec2 fragTexCoord;
 layout(location = 2) in vec3 fragNormal;
 layout(location = 3) in vec3 fragPosition;
 layout(location = 4) in vec4 fragLightSpacePos;
+layout(location = 5) in VS_OUT_NORMAL{
+    vec3 TangentLightPos;
+    vec3 TangentViewPos;
+    vec3 TangentFragPos;
+} fs_in;
 
 layout(location = 0) out vec4 outColor;
 
@@ -45,13 +51,20 @@ float ShadowCalculation(vec4 fragPosLightSpace)
 }
 
 void main() {
-    vec3 lightDir = normalize(lightUBO.direction);
-    vec3 norm = normalize(fragNormal);
-    float diff = max(dot(norm, lightDir), 0.0);
+
+    vec3 normal = texture(normalMap, fragTexCoord).rgb;
+    normal = normalize(normal * 2.0 - 1.0);
+
+    //vec3 lightDir = normalize(lightUBO.direction);
+    vec3 lightDir = normalize(fs_in.TangentLightPos - fs_in.TangentFragPos);
+    //vec3 normal = normalize(fragNormal);
+    float diff = max(dot(normal, lightDir), 0.0);
     vec3 diffuse = lightUBO.diffuse * diff;
-    vec3 viewDir = normalize(cameraUBO.pos - fragPosition);
+    
+    //vec3 viewDir = normalize(cameraUBO.pos - fragPosition);
+    vec3 viewDir = normalize(fs_in.TangentViewPos - fs_in.TangentFragPos);
     vec3 halfDir = normalize(lightDir + viewDir);
-    float spec = pow(max(dot(norm, halfDir), 0.0), lightUBO.shininess);
+    float spec = pow(max(dot(normal, halfDir), 0.0), lightUBO.shininess);
     vec3 specular = lightUBO.specular * spec;
     vec3 ambient = lightUBO.ambient;
     
@@ -59,5 +72,5 @@ void main() {
     vec4 texColor = texture(texSampler, fragTexCoord);
     vec3 lighting = ambient + (1.0 - shadow) * (diffuse + specular);
     outColor = vec4(texColor.rgb * lighting, texColor.a);
-    //outColor = vec4(shadow, shadow, shadow, 1.0);
+    //outColor = vec4(specular.xyz, 1.0);
 }

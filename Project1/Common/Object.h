@@ -19,15 +19,18 @@ public:
     std::vector<VkDescriptorSet> descriptorSets;
     Mesh mesh;
     Texture texture;
+    Texture normal;
 
     void loadObject(const VulkanPhysicalDevice& physicalDevice, const VulkanDevice& device, const VulkanCommandPool& commandPool,
-        const std::string& modelPath, const glm::mat4& modelMatrix, const std::string& texturePath,
+        const std::string& modelPath, const glm::mat4& modelMatrix,
+        const std::string& texturePath, const std::string& normalMapPath,
         const VulkanDescriptorPool& descriptorPool, const VulkanDescriptorSetLayout& descriptorSetLayout,
         const std::vector<VulkanUniformBuffer>& cameraUniformBuffers,  const std::vector<VulkanUniformBuffer>& lightUniformBuffers,
         const std::vector<VulkanUniformBuffer>& lightSpaceUniformBuffers, VkImageView shadowMapImageView, VkSampler shadowMapSampler)
     {
         loadMesh(physicalDevice, device, commandPool, modelPath, modelMatrix);
         loadTexture(physicalDevice, device, commandPool, texturePath);
+        loadNormalMap(physicalDevice, device, commandPool, normalMapPath);
         updateDescriptorSet(device, descriptorPool, cameraUniformBuffers, lightUniformBuffers, lightSpaceUniformBuffers, shadowMapImageView, shadowMapSampler, descriptorSetLayout);
     }
     
@@ -42,6 +45,13 @@ private:
         mesh.modelMatrix = matrix;
     }
 
+    void loadNormalMap(const VulkanPhysicalDevice& physicalDevice, const VulkanDevice& device, const VulkanCommandPool& commandPool,
+        const std::string& path)
+    {
+        normal.loadTextureImage(physicalDevice, device, commandPool, path, VK_FORMAT_R8G8B8A8_UNORM);
+        normal.createTextureSampler(physicalDevice, device);
+    }
+    
     void loadTexture(const VulkanPhysicalDevice& physicalDevice, const VulkanDevice& device, const VulkanCommandPool& commandPool,
         const std::string& path)
     {
@@ -59,7 +69,7 @@ private:
         descriptorSets = descriptorPool.allocateDescriptorSets(&device, layouts.data(), static_cast<uint32_t>(setCount));
         for (size_t i = 0; i < descriptorSets.size(); ++i)
         {
-            std::array<VkWriteDescriptorSet, 5> descriptorWrites{};
+            std::array<VkWriteDescriptorSet, 6> descriptorWrites{};
             
             VkDescriptorBufferInfo cameraBufferInfo{};
             cameraBufferInfo.buffer = cameraUniform[i].vBuffer.buffer;
@@ -125,6 +135,19 @@ private:
             descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             descriptorWrites[4].descriptorCount = 1;
             descriptorWrites[4].pImageInfo = &shadowMapInfo;
+
+            VkDescriptorImageInfo normalMapInfo{};
+            normalMapInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            normalMapInfo.imageView = normal.image.imageView;
+            normalMapInfo.sampler = normal.sampler;
+            
+            descriptorWrites[5].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[5].dstSet = descriptorSets[i];
+            descriptorWrites[5].dstBinding = 5;
+            descriptorWrites[5].dstArrayElement = 0;
+            descriptorWrites[5].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptorWrites[5].descriptorCount = 1;
+            descriptorWrites[5].pImageInfo = &normalMapInfo;
             
             vkUpdateDescriptorSets(device.device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
         }

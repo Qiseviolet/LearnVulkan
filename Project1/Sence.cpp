@@ -69,7 +69,7 @@ void Sence::createLight()
     DirectionalLight directionalLight;
     directionalLight.direction = glm::vec3(1.0f, 1.0f, 1.0f);
     directionalLight.ambient = glm::vec3(0.2f, 0.2f, 0.2f);
-    directionalLight.diffuse = glm::vec3(1.0f, 1.0f, 1.0f);
+    directionalLight.diffuse = glm::vec3(0.5f, 0.5f, 0.5f);
     directionalLight.specular = glm::vec3(1.0f, 1.0f, 1.0f);
     directionalLight.shininess = 32.0;
     for (size_t i = 0; i < lightUniformBuffers.size(); ++i)
@@ -80,29 +80,33 @@ void Sence::createLight()
 
 void Sence::loadObjects()
 {
-    static const std::string sphereObj = "./Model/sphere.obj";
+    static const std::string sphereObj = "./Model/cube.obj";
     objects.resize(5);
     objects[0].loadObject(vPhysicalDevice, vDevice, vCommandPool, sphereObj,
         (glm::translate(glm::mat4(1.0f), glm::vec3(-3.0f, 0.0f, 0.0f))),
-        "./Texture/lightgold_albedo.png", vDescriptorPool, vDescriptorSetLayout,
+        "./Texture/lightgold_albedo.png", "./Texture/normal_mapping_normal_map.png",
+        vDescriptorPool, vDescriptorSetLayout,
         cameraUniformBuffers, lightUniformBuffers, lightSpaceUniformBuffers, shadow.shadowMapImage.imageView, shadow.shadowMapSampler);
     objects[1].loadObject(vPhysicalDevice, vDevice, vCommandPool, sphereObj,
         glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
-        "./Texture/dark-wood-stain_albedo.png", vDescriptorPool, vDescriptorSetLayout,
+        "./Texture/dark-wood-stain_albedo.png", "./Texture/normal_mapping_normal_map.png",
+        vDescriptorPool, vDescriptorSetLayout,
         cameraUniformBuffers, lightUniformBuffers, lightSpaceUniformBuffers, shadow.shadowMapImage.imageView, shadow.shadowMapSampler);
     objects[2].loadObject(vPhysicalDevice, vDevice, vCommandPool, sphereObj,
         glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
-        "./Texture/stylized-cave-wall1_albedo.png", vDescriptorPool, vDescriptorSetLayout,
+        "./Texture/stylized-cave-wall1_albedo.png", "./Texture/normal_mapping_normal_map.png",
+        vDescriptorPool, vDescriptorSetLayout,
         cameraUniformBuffers, lightUniformBuffers, lightSpaceUniformBuffers, shadow.shadowMapImage.imageView, shadow.shadowMapSampler);
     objects[3].loadObject(vPhysicalDevice, vDevice, vCommandPool, sphereObj,
         glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 0.0f)),
-        "./Texture/houndstooth-fabric-weave_albedo.png", vDescriptorPool, vDescriptorSetLayout,
+        "./Texture/houndstooth-fabric-weave_albedo.png", "./Texture/normal_mapping_normal_map.png",
+        vDescriptorPool, vDescriptorSetLayout,
         cameraUniformBuffers, lightUniformBuffers, lightSpaceUniformBuffers, shadow.shadowMapImage.imageView, shadow.shadowMapSampler);
     static const std::string planeObj = "./Model/cube.obj";
     glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -2.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(50.0f, 50.0f, 0.1f));
-    objects[4].loadObject(vPhysicalDevice, vDevice, vCommandPool, planeObj,
-        modelMatrix,
-        "./Texture/wood_diff.jpg", vDescriptorPool, vDescriptorSetLayout,
+    objects[4].loadObject(vPhysicalDevice, vDevice, vCommandPool, planeObj, modelMatrix,
+        "./Texture/wood_diff.jpg", "./Texture/normal_mapping_normal_map.png",
+        vDescriptorPool, vDescriptorSetLayout,
         cameraUniformBuffers, lightUniformBuffers, lightSpaceUniformBuffers, shadow.shadowMapImage.imageView, shadow.shadowMapSampler); 
 }
 
@@ -125,6 +129,7 @@ void Sence::cleanup() {
     {
         object.mesh.destroyMesh(vDevice);
         object.texture.destroyTexture(vDevice);
+        object.normal.destroyTexture(vDevice);
     }
     shadow.destroyShadowResources(vDevice);
     vGraphicsPipeline.destroyGraphicsPipeline(vDevice);
@@ -368,7 +373,13 @@ std::vector<VkDescriptorSetLayoutBinding> Sence::createDescriptorSetLayoutBindin
     shadowMapLayoutBinding.descriptorCount = 1;
     shadowMapLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     shadowMapLayoutBinding.pImmutableSamplers = nullptr;
-    return { cameraUboLayoutBinding, samplerLayoutBinding, lightUboLayout, lightSpaceUboLayout, shadowMapLayoutBinding };
+    VkDescriptorSetLayoutBinding normalMapLayoutBinding{};
+    normalMapLayoutBinding.binding = 5;
+    normalMapLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    normalMapLayoutBinding.descriptorCount = 1;
+    normalMapLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    normalMapLayoutBinding.pImmutableSamplers = nullptr;
+    return { cameraUboLayoutBinding, samplerLayoutBinding, lightUboLayout, lightSpaceUboLayout, shadowMapLayoutBinding, normalMapLayoutBinding };
 }
 
 VertexInputDescription Sence::loadVertexInputDescription() const
